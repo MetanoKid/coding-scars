@@ -155,7 +155,7 @@
 .author__urls {
   display: none;
   position: absolute;
-  right: 0;
+  right: -30px;
   margin-top: 15px;
   padding: 10px;
   list-style-type: none;
@@ -171,6 +171,7 @@
     position: relative;
     margin: 0;
     margin-top: 15px;
+    right: 0;
     padding: 0;
     border: 0;
     background: transparent;
