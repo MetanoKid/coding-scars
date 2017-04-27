@@ -7,7 +7,7 @@
 
 # Site Settings
 locale                   : "en"
-title                    : "Coding Scars"
+title                    : "codingScars"
 title_separator          : "-"
 name                     : "MetanoKid"
 description              : "Programming blog"
