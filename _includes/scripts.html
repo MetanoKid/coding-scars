@@ -1,4 +1,7 @@
 <script src="{{ '/assets/js/main.min.js' | absolute_url }}"></script>
 
-{% include analytics.html %}
+{% if jekyll.environment == "production" %}
+	{% include analytics.html %}
+{% endif %}
+
 {% include /comments-providers/scripts.html %}
