@@ -319,5 +319,78 @@ Like everything else, _with great power comes great responsibility_. By using X-
 
   * You lose the ability to debug any expansion of `X`: be careful with having complex definitions that can fail in many places. Test those definitions standalone before wrapping them into a X-Macro.
   * You're giving your team a hard time: chances are they aren't used to X-Macros, so they could feel lost until they understand what's going on.
+  * You can get dragged into the hype train and start using this feature all over the place. Remember: this isn't a _silver bullet_.
 
 ## Interesting uses
+
+Alright, so I've convinced you that X-Macros are useful but what can you do with them apart from having the string representation of an enumeration?  
+Off the top of my head, here are some nice uses:
+
+### Bulk member variables definition
+
+Have you ever forgot to initialize a member variable in the constructor? Maybe you wanted to have automatic getters and setters for every member you defined? Maybe this can do the trick for you:
+
+{% highlight c++ %}
+class MyClass
+{
+    // list of all the members available for this class
+#define MyClass_Members                      \
+    PUB( integerMember, int,         0     ) \
+    PRI( stringMember,  std::string, ""    ) \
+    PRO( boolMember,    bool,        false )
+
+    // create members with their defined access modifiers
+#define MEMBER(ACCESS_MODIFIER, MEMBER_NAME, TYPE, DEFAULT) ACCESS_MODIFIER: TYPE MEMBER_NAME;
+#define PUB(MEMBER_NAME, TYPE, DEFAULT) MEMBER(public,    MEMBER_NAME, TYPE, DEFAULT)
+#define PRI(MEMBER_NAME, TYPE, DEFAULT) MEMBER(private,   MEMBER_NAME, TYPE, DEFAULT)
+#define PRO(MEMBER_NAME, TYPE, DEFAULT) MEMBER(protected, MEMBER_NAME, TYPE, DEFAULT)
+    MyClass_Members
+#undef MEMBER
+#undef PUB
+#undef PRI
+#undef PRO
+
+    // constructor with auto-generated initializations
+#define INITIALIZER(MEMBER_NAME, DEFAULT) MEMBER_NAME = DEFAULT;
+#define PUB(MEMBER_NAME, TYPE, DEFAULT) INITIALIZER(MEMBER_NAME, DEFAULT)
+#define PRI(MEMBER_NAME, TYPE, DEFAULT) INITIALIZER(MEMBER_NAME, DEFAULT)
+#define PRO(MEMBER_NAME, TYPE, DEFAULT) INITIALIZER(MEMBER_NAME, DEFAULT)
+public:
+    MyClass()
+    {
+        MyClass_Members
+    }
+#undef INITIALIZER
+#undef PUB
+#undef PRI
+#undef PRO
+
+    // getter and setter generation
+#define GETTER_SETTER(MEMBER_NAME, TYPE)                              \
+    const TYPE &get_##MEMBER_NAME() const { return MEMBER_NAME; }     \
+    void set_##MEMBER_NAME(const TYPE &value) { MEMBER_NAME = value; }
+#define PUB(MEMBER_NAME, TYPE, DEFAULT) GETTER_SETTER(MEMBER_NAME, TYPE)
+#define PRI(MEMBER_NAME, TYPE, DEFAULT) GETTER_SETTER(MEMBER_NAME, TYPE)
+#define PRO(MEMBER_NAME, TYPE, DEFAULT) GETTER_SETTER(MEMBER_NAME, TYPE)
+    MyClass_Members
+#undef GETTER_SETTER
+#undef PUB
+#undef PRI
+#undef PRO
+};
+{% endhighlight %}
+
+So now you could do stuff like:
+
+{% highlight c++ %}
+MyClass c;
+    
+printf("%i\n", c.get_integerMember());          // 0
+printf("'%s'\n", c.get_stringMember().c_str()); // ''
+
+c.set_integerMember(45);
+c.set_stringMember("Hi!");
+
+printf("%i\n", c.get_integerMember());          // 45
+printf("'%s'\n", c.get_stringMember().c_str()); // 'Hi!'
+{% endhighlight %}
