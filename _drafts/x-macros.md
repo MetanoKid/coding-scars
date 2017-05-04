@@ -159,7 +159,7 @@ enum class Color
 
 And we've got it.
 
-#### Er... what?
+### Er... what?
 
 Within the enumeration we've defined Macro `X`, which receives an argument (the color from the list) and translates it to `ID,`. After that, we remove this definition of `X` so no other code after this one knows about it and has unexpected results. Let's expand the code similarly to what the preprocessor would do:
 
@@ -319,19 +319,19 @@ Like everything else, _with great power comes great responsibility_. By using X-
 
   * You lose the ability to debug any expansion of `X`: be careful with having complex definitions that can fail in many places. Test those definitions standalone before wrapping them into a X-Macro.
   * You're giving your team a hard time: chances are they aren't used to X-Macros, so they could feel lost until they understand what's going on.
+  * You shouldn't forget you haven't written the whole code, but it's there! If you perform costly computations within the expansions of `X`, those won't magically disappear!
   * You can get dragged into the hype train and start using this feature all over the place. Remember: this isn't a _silver bullet_.
 
-## Interesting uses
+## Bonus: interesting usage
 
-Alright, so I've convinced you that X-Macros are useful but what can you do with them apart from having the string representation of an enumeration?  
-Off the top of my head, here are some nice uses:
+Alright, so I've convinced you that X-Macros are useful but what can you do with them apart from having the string representation of an enumeration? Let's talk about one.
 
 ### Bulk member variables definition
 
-Have you ever forgot to initialize a member variable in the constructor? Maybe you wanted to have automatic getters and setters for every member you defined? Maybe this can do the trick for you:
+Have you ever forgot to initialize a member variable in the constructor? Maybe you wanted to have automatic getters and setters for every member you defined? This could do the trick for you:
 
 {% highlight c++ %}
-class MyClass
+class cMyClass
 {
     // list of all the members available for this class
 #define MyClass_Members                      \
@@ -383,7 +383,7 @@ public:
 So now you could do stuff like:
 
 {% highlight c++ %}
-MyClass c;
+cMyClass c;
     
 printf("%i\n", c.get_integerMember());          // 0
 printf("'%s'\n", c.get_stringMember().c_str()); // ''
@@ -394,3 +394,7 @@ c.set_stringMember("Hi!");
 printf("%i\n", c.get_integerMember());          // 45
 printf("'%s'\n", c.get_stringMember().c_str()); // 'Hi!'
 {% endhighlight %}
+
+One of the downsides is having to define all of your members within the X-Macro, and that's where macros can make your code uglier.
+
+Thanks for reading!
