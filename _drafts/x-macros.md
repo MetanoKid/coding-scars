@@ -2,7 +2,7 @@
 layout: single
 title: X-Macros in C/C++
 excerpt: Macros aren't always as Evil as they say
-category: programming
+category: Programming
 tags:
   - C++
   - Macros
