@@ -2,10 +2,11 @@
 layout: single
 title: X-Macros in C/C++
 excerpt: Macros aren't always as Evil as they say
-category: general
+category: programming
 tags:
-  - C
   - C++
+  - Macros
+  - Code generation
 ---
 
 Okay, okay. Macros are obscure and [Evil](http://stackoverflow.com/a/14041847/1257656), but they can be really useful when you want to generate code easily.  
@@ -397,4 +398,4 @@ printf("'%s'\n", c.get_stringMember().c_str()); // 'Hi!'
 
 One of the downsides is having to define all of your members within the X-Macro, and that's where macros can make your code uglier.
 
-Thanks for reading!
+Thank you for reading!
