@@ -1,5 +1,5 @@
 {% if page.previous or page.next %}
-  <nav class="pagination">
+  <nav class="pagination {{ include.position }}">
     {% if page.previous %}
       <a href="{{ page.previous.url | absolute_url }}" class="pagination--pager" title="{{ page.previous.title | markdownify | strip_html }}">{{ site.data.ui-text[site.locale].pagination_previous | default: "Previous" }}:<span class="post-title">{{ page.previous.title }}</span></a>
     {% else %}
