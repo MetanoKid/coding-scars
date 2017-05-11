@@ -163,6 +163,25 @@
       font-size: $type-size-3;
     }
   }
+
+  &.top {
+    margin-top: 0;
+    margin-bottom: 1em;
+    padding-top: 0;
+    border-top: 0;
+    font-size: $type-size-7;
+
+    a {
+      font-size: $type-size-5;
+      padding: 0.5em;
+    }
+
+    .post-title {
+      display: inline;
+      margin-left: 0.2em;
+      font-size: $type-size-5;
+    }
+  }
 }
 
 .page__content + .pagination,
