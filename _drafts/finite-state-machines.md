@@ -27,39 +27,20 @@ You're about to roll up your sleeves when you notice you're missing something...
 
 # Simple game loop
 
-First of all, we need a game loop in which our SCV can live. We're not going to perform real work here and will only care about one single unit, so we can simplify it down to this one:
+First of all, we need a game loop in which our SCV can live. We're oversimplifying it, so assume we've got this one:
 
 {% highlight c++ %}
-#include <chrono>
-
-using namespace std::chrono;
-const float FIXED_TIMESTEP = 1.0f / 30.0f;
-
 void logicUpdate(float deltaTime)
 {
-    // we'll have our SCV logic here
+    scv.update(deltaTime);
 }
 
 int main()
 {
-    auto start = high_resolution_clock::now();
-    auto stop = start;
-    float deltaTime = 0.0f;
-    float logicDeltaTime = 0.0f;
-
     while (true)
     {
-        // perform delta time calculations
-        start = stop;
-        stop = high_resolution_clock::now();
-        logicDeltaTime += duration_cast<duration<float>>(stop - start).count();
-
-        // update logic as much as necessary
-        while (logicDeltaTime >= FIXED_TIMESTEP)
-        {
-            logicUpdate(FIXED_TIMESTEP);
-            logicDeltaTime -= FIXED_TIMESTEP;
-        }
+        float deltaTime = getDeltaTime();
+        logicUpdate(deltaTime);
     }
 
     return 0;
@@ -79,7 +60,6 @@ public:
 };
 {% endhighlight %}
 
-Now, we can just fill in the `logicUpdate` function with a call to our SCV's `update` function.  
 Still with me? Let's get our hands dirty!
 
 # Naive implementation
@@ -200,14 +180,16 @@ Take a look at this function. It isn't close to being beautiful: it's long, perf
 
 # Stateless states
 
-Gang of Four's State pattern defines that a given class has an instance of a state to which the logic is delegated. But before we implement the real object-oriented pattern, let's create a hybrid with the imperative approach. While it might not look as useful it will help us to better understand the program's flow.
+Gang of Four's State pattern defines that a given class has an instance of a state to which the logic is delegated. But before we implement the real object-oriented pattern, let's create a hybrid with the imperative approach. While it might not look as useful for now, it will help us to better understand the program's flow.
+
+The previous `update` function was tangled, so our goal is to basically keep the same function but cut into different pieces.
 
 Let's define a `State` as:
 
 {% highlight c++ %}
 struct State
 {
-    typedef void (SCV::*TOnUpdate)(float);
+    typedef std::function<void(SCV*, float)> TOnUpdate;
 
     State(TOnUpdate onUpdate) : m_onUpdate(onUpdate)
     {
@@ -217,16 +199,16 @@ struct State
 };
 {% endhighlight %}
 
-And so, the `update` method would just delegate to the current state's:
+This is a _stateless_ state: it doesn't hold any data, just a pointer to its _update_ function provided during construction. The only thing we're missing is the delegation of the `update` function to the current state's:
 
 {% highlight c++ %}
 void update(float deltaTime)
 {
-    std::invoke(m_state->m_onUpdate, this, deltaTime);
+    m_state->m_onUpdate(this, deltaTime);
 }
 {% endhighlight %}
 
-We could then have a method that sets the state, nothing fancy:
+Alright! And how do we change states? We could define a simple method that sets them, nothing fancy:
 
 {% highlight c++ %}
 void setState(State *state)
@@ -236,9 +218,14 @@ void setState(State *state)
 }
 {% endhighlight %}
 
-Now, we can have the `States` we talked about earlier by having their own update function. Something like:
+Now we can create and set states with different update functions to control flow. Something like:
 
 {% highlight c++ %}
+SCV()
+{
+    setState(new State(&SCV::updateIdle));
+}
+
 void updateIdle(float deltaTime)
 {
     // ...
@@ -248,7 +235,7 @@ void updateMovingToPoint(float deltaTime)
 {
     if (reachedPoint(m_point))
     {
-        SetState(new State(&SCV::updateIdle));
+        setState(new State(&SCV::updateIdle));
     }
     else
     {
@@ -264,7 +251,7 @@ void updateGathering(float deltaTime)
 
 You get the point.
 
-Okay, but still this code has a major flaw we want to solve: all member variables are potentially shared between states. What if we explore the Gang of Four's State pattern already?
+Okay, but still this code has a major flaw we want to solve: all member variables are potentially shared between states (not to mention creating and destroying states everytime!). What if we explore the real Gang of Four's State pattern already?
 
 # Stateful states
 # Finite State Machines
