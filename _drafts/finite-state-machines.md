@@ -319,9 +319,9 @@ void moveTowards(const Entity *entity)
 }
 {% endhighlight %}
 
-Do you start to see the benefits of using _stateful_ states? Our SCV class would be reduced to having the `State` it's in and whatever other properties that are relevant for the unit (i.e. the amount of a loaded resource). We don't keep many members to hold logic that is specific to one state.
+Do you start to see the benefits of using _stateful_ states? Our SCV class would be reduced to having the `State` it's in and whatever other properties that are relevant for the unit (i.e. the amount of a loaded resources). We don't have common properties to hold logic that is specific to one state.
 
-Each `State`, then, is responsible for taking care of whatever variables it needs to fulfill its logic separately from other `States`. This helps readability and maintainability as execution flow is held in the currently active state.
+Each `State`, then, is responsible for taking care of performing its own logic with its own properties, separatedly from other `States`. This helps readability and maintainability as execution flow is held in the currently active state and we can only access the state's data or SCV's common one (i.e. loaded resources).
 
 # OnEnter, OnExit
 # Finite State Machines
