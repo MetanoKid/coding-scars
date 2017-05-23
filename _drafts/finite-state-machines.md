@@ -251,8 +251,78 @@ void updateGathering(float deltaTime)
 
 You get the point.
 
-Okay, but still this code has a major flaw we want to solve: all member variables are potentially shared between states (not to mention creating and destroying states everytime!). What if we explore the real Gang of Four's State pattern already?
+Okay, but still this code has a major flaw we want to solve: all member variables are potentially shared between states (not to mention creating and destroying states everytime!).
+
+What if we explore the real Gang of Four's State pattern already?
 
 # Stateful states
+
+As with all of the Gang of Four's patterns, we're going for a full object-oriented design: each state will become a class on its own that handles the logic in one part of the behavior. As before, we'll have a single state as a member object in the SCV class.
+
+All states will have a common interface: the `update` function we'll be delegating to within the SCV's `update` function.
+
+The superclass for all of the states would be:
+
+{% highlight c++ %}
+struct State
+{
+    virtual void update(SCV *scv, float deltaTime) = 0;
+};
+{% endhighlight %}
+
+Let's now define some of the states we've already mentioned.
+
+### Idle
+
+{% highlight c++ %}
+struct Idle : public State
+{
+    void update(SCV *scv, float deltaTime) override
+    {
+        // Idle: do nothing
+    }
+};
+{% endhighlight %}
+
+Easy peasy.
+
+### Gathering
+
+{% highlight c++ %}
+struct Gathering : public State
+{
+    Gathering(float gatheringTime) : m_remainingTime(gatheringTime)
+    {
+    }
+
+    void update(SCV *scv, float deltaTime) override
+    {
+        m_remainingTime -= deltaTime;
+        if (m_remainingTime <= 0.0f)
+        {
+            scv->fillUpTank();
+            scv->moveTowards(scv->getResourceBuilding());
+        }
+    }
+
+private:
+    float m_remainingTime;
+};
+{% endhighlight %}
+
+See that `moveTowards` function? It implicitly changes the state of the SCV. It could be implemented like:
+
+{% highlight c++ %}
+void moveTowards(const Entity *entity)
+{
+    setState(new MovingToTarget(entity));
+}
+{% endhighlight %}
+
+Do you start to see the benefits of using _stateful_ states? Our SCV class would be reduced to having the `State` it's in and whatever other properties that are relevant for the unit (i.e. the amount of a loaded resource). We don't keep many members to hold logic that is specific to one state.
+
+Each `State`, then, is responsible for taking care of whatever variables it needs to fulfill its logic separately from other `States`. This helps readability and maintainability as execution flow is held in the currently active state.
+
+# OnEnter, OnExit
 # Finite State Machines
 # Hierarchical State Machines
