@@ -323,6 +323,42 @@ Do you start to see the benefits of using _stateful_ states? Our SCV class would
 
 Each `State`, then, is responsible for taking care of performing its own logic with its own properties, separatedly from other `States`. This helps readability and maintainability as execution flow is held in the currently active state and we can only access the state's data or SCV's common one (i.e. loaded resources).
 
-# OnEnter, OnExit
+# Setting state revisited
+
+Alright, so now that we know how we're structuring our code, let's think about code flow once again. Since we're keeping all of the logic that is related to a state in itself, we'd like to detect when we're entering/exiting a state so we can have extra logic (i.e. setting an animation, playing a sound, notifying other systems).
+
+For that, we'll have to modify our `State` to have two extra methods: `onEnter` and `onExit`.
+
+{% highlight c++ %}
+struct State
+{
+    virtual void onEnter(SCV *scv, const State *previous) = 0;
+    virtual void update(SCV *scv, float deltaTime) = 0;
+    virtual void onExit(SCV *scv, const State *next) = 0;
+};
+{% endhighlight %}
+
+And we'll have to modify our `setState` method to account for these functions:
+
+{% highlight c++ %}
+void setState(State *state)
+{
+    if (m_state != nullptr)
+    {
+        m_state->onExit(this, state);
+    }
+
+    const State *previous = m_state;
+    m_state = state;
+    m_state->onEnter(this, previous);
+
+    delete previous;
+}
+{% endhighlight %}
+
+Of course, we could've passed our `SCV` instance in the `State` constructor rather than each function, but for the sake of simplicity we've kept it this way.
+
+This way, we could set some animation when we enter the `Idle` state, hide the unit when entering the `Depositing` state and showing it again when exiting it, or having different logic when we are coming from/going to certain states.
+
 # Finite State Machines
 # Hierarchical State Machines
