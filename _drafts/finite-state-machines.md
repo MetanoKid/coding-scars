@@ -1,21 +1,24 @@
 ---
 layout: single
-title: Finite State Machines
+title: State Pattern
 author: Meta
 category: Computer Science
 tags:
   - Programming
   - Design Patterns
+  - Finite State Machines
+  - Gang of Four
 ---
 
-Let's talk about some Computer Science, alright?  
-In this _coding scar_ we'll cover the Gang of Four's [State pattern](https://en.wikipedia.org/wiki/State_pattern).
+In this _coding scar_ we'll talk about one of the Gang of Four's object-oriented patterns: the [State pattern](https://en.wikipedia.org/wiki/State_pattern).
+
+You are programming a [RTS](https://en.wikipedia.org/wiki/Real-time_strategy) videogame with some AIs. One of those is a basic unit: the harvester. You decide to find _inspiration_ in other videogames, and you come across StarCraft.
 
 # StarCraft's harvester
 
-Let's take the original StarCraft Terran's worker unit (the SCV) as an example. This unit can store two types of resource: minerals and gas. It can move through the map, gather resources, build new structures, ...
+The original StarCraft Terran's worker unit (the SCV) can store resources (minerals and gas). It can move through the map, gather those resources, build new structures, ...
 
-We'll simplify it so we can illustrate the concepts. We'll stick to this behavior for the most part:
+We'll simplify it so we can illustrate the concepts. This is the behavior we're interested in, for now:
 
   * Idle: just standing, doing nothing.
   * Moving to a point: the player has commanded it to move to a point, and it's on the way.
@@ -23,7 +26,7 @@ We'll simplify it so we can illustrate the concepts. We'll stick to this behavio
   * Gathering mineral/gas: resources are extracted periodically when gathering. The SCV will continue doing this until it reaches its full load.
   * Deposit resources: once the SCV reaches the correct building the loaded resources are periodically removed from the unit's tank.
 
-You're about to roll up your sleeves when you notice you're missing something...
+Now you know what your unit will be doing, and because you _think_ you know how to implement it, you start your favourite IDE and start coding right away.
 
 # Simple game loop
 
@@ -60,15 +63,15 @@ public:
 };
 {% endhighlight %}
 
-Still with me? Let's get our hands dirty!
+Easy peasy. What's next?
 
 # Naive implementation
 
-Okay, you now know the behavior of the unit and the game loop in which it will exist. And then you start thinking about how we're making this unit work. Let's explore the first thoughts step by step.
+You believe you can code this unit's behavior without designing it first, so you start thinking about the parts of the behaviour one by one.
 
 ### Idle
 
-Arguably the easier part of the behavior: the SCV can be standing still doing nothing. Okay, so we fill in our `SCV::update` function like so:
+Arguably the easier part: the SCV can be standing still doing nothing. Okay, so we fill in our `SCV::update` function like so:
 
 {% highlight c++ %}
 void update(float deltaTime)
@@ -106,11 +109,11 @@ void update(float deltaTime)
 
 Let's assume methods `reachedPoint` and `moveTowards` do what their names imply, performing the necessary calculations that we're skipping so we stay in track.
 
-Okay, so now the unit can move and stay idle. What's next?
+Okay, so now the unit can move and stay idle. You are on fire. _Who needs to design their systems, anyway?_ What's next?
 
 ### Moving to target
 
-Assume our target is an entity in our hypothetical world. The resources this unit has to collect and the buildings where those resources can be deposited would be those entities. We don't mind if our architecture is component-based or hierarchy-based or whatever the case is. We're assuming our SCV can `interact` with one of these `Entity`. One could then do:
+Assume our target is an entity in our hypothetical world. The resources this unit has to collect and the buildings where those resources can be deposited would be those entities. We don't mind if our architecture is component-based or hierarchy-based or whatever. We're assuming our SCV can `interact` with one of these `Entity`. One could then have:
 
 {% highlight c++ %}
 void update(float deltaTime)
@@ -138,11 +141,11 @@ void update(float deltaTime)
 }
 {% endhighlight %}
 
-This is starting to smell a little, huh? Let's see how the remaining pieces would look like.
+This is starting to smell a little, huh? But you are tough and a little smell isn't turning you out.
 
 ### Gathering and depositing resources
 
-Okay, we've got our SCV moving through the world and interacting with stuff. Let's say it can interact with two types of entities: resources and building to deposit them. Let's also assume it takes some time for the unit to fill its tank up and to empty it out. Something like:
+Okay, we've got our SCV moving through the world and interacting with stuff. Let's say it can interact with two types of entities: resources and buildings to deposit them. Let's also assume it takes some time for the unit to fill its tank up and to empty it out. Something like:
 
 {% highlight c++ %}
 void update(float deltaTime)
@@ -176,13 +179,64 @@ void update(float deltaTime)
 }
 {% endhighlight %}
 
-Take a look at this function. It isn't close to being beautiful: it's long, performs a lot of different logic, it's got a lot of nesting... We can do better!
+Take a look at this function. It isn't close to being beautiful: it's long, performs a lot of different logic, it's got a lot of nesting... We can do better! But before you can think of a better way, you realize you can't command your unit to do anything.
+
+### Interaction
+
+Say our unit has a way of taking commands and we don't mind where those commands come from (user interaction, other systems within the game, the unit itself, ...). You roll up your sleeves and create this sample hierarchy:
+
+{% highlight c++ %}
+struct Action
+{
+    virtual unsigned int getID() const = 0;
+};
+
+struct MoveToPointAction : public Action
+{
+    MoveToPointAction(const Vector2 &point) :
+        Action(), m_point(point)
+    {
+    }
+
+    Vector2 m_point;
+};
+{% endhighlight %}
+
+And now the method in your unit to execute these actions:
+
+{% highlight c++ %}
+void executeAction(const Action *action)
+{
+    if (auto moveToPoint = rtti_cast<const MoveToPointAction *>(action))
+    {
+        if (!m_depositingResource && !m_gatheringResource)
+        {
+            if (m_movingToTarget)
+            {
+                m_movingToTarget = false;
+                m_targetEntity = nullptr;
+            }
+
+            m_point = moveToPoint->m_point;
+            m_movingToPoint = true;
+        }
+    }
+}
+{% endhighlight %}
+
+Ugh.
+
+For clarification, we cast the action we've been passed to get the `Action` we're interested in (suppose _rtti_cast_ is your very own RTTI implementation, or just uses _dynamic_cast_, we don't mind).
+
+That's just one of the actions the unit can take! It can also `MoveToEntity` or even `FleeFromTarget` if an enemy is coming. Now you take a deep breath and remember your old self not designing the system with some pen and paper.
+
+Let's start again. Mostly.
 
 # Stateless states
 
-Gang of Four's State pattern defines that a given class has an instance of a state to which the logic is delegated. But before we implement the real object-oriented pattern, let's create a hybrid with the imperative approach. While it might not look as useful for now, it will help us to better understand the program's flow.
+Gang of Four's State pattern defines that a given class has an instance of a `State` to which the logic is delegated. But before we implement the real object-oriented pattern, let's create a hybrid with an imperative approach. While it might not look as useful for now, it will help us to better understand the program's flow.
 
-The previous `update` function was tangled, so our goal is to basically keep the same function but cut into different pieces.
+The previous `update` and `executeAction` functions were tangled, so our goal is to basically keep the same functions but cut into different pieces.
 
 Let's define a `State` as:
 
@@ -190,21 +244,29 @@ Let's define a `State` as:
 struct State
 {
     typedef std::function<void(SCV*, float)> TOnUpdate;
+    typedef std::function<void(SCV*, const Action *)> TOnAction;
 
-    State(TOnUpdate onUpdate) : m_onUpdate(onUpdate)
+    State(TOnUpdate onUpdate, TOnAction onAction) :
+        m_onUpdate(onUpdate), m_onAction(onAction)
     {
     }
 
     TOnUpdate m_onUpdate;
+    TOnAction m_onAction;
 };
 {% endhighlight %}
 
-This is a _stateless_ state: it doesn't hold any data, just a pointer to its _update_ function provided during construction. The only thing we're missing is the delegation of the `update` function to the current state's:
+This is a _stateless_ state: it doesn't hold any data, just a pointer to its `update` and `executeAction` functions provided during construction. The only thing we're missing is the delegation of the `SCV::update` and `SCV::executeAction` functions to the current state's:
 
 {% highlight c++ %}
 void update(float deltaTime)
 {
     m_state->m_onUpdate(this, deltaTime);
+}
+
+void executeAction(const Action *action)
+{
+    m_state->m_onAction(this, action);
 }
 {% endhighlight %}
 
@@ -218,34 +280,40 @@ void setState(State *state)
 }
 {% endhighlight %}
 
-Now we can create and set states with different update functions to control flow. Something like:
+Now we can create and set states with different functions to control flow. Something like:
 
 {% highlight c++ %}
 SCV()
 {
-    setState(new State(&SCV::updateIdle));
+    setState(new State(&SCV::updateOnIdle, &SCV::executeActionOnIdle));
 }
 
-void updateIdle(float deltaTime)
+void updateOnIdle(float deltaTime)
 {
     // ...
+}
+
+void executeActionOnIdle(const Action *action)
+{
+    if (auto moveToPoint = rtti_cast<const MoveToPointAction *>(action))
+    {
+        m_point = moveToPoint->m_point;
+        setState(new State(&SCV::updateOnMovingToPoint,
+                           &SCV::executeActionOnMovingToPoint));
+    }
 }
 
 void updateMovingToPoint(float deltaTime)
 {
     if (reachedPoint(m_point))
     {
-        setState(new State(&SCV::updateIdle));
+        setState(new State(&SCV::updateOnIdle,
+                           &SCV::executeActionOnIdle));
     }
     else
     {
         moveTowards(m_point);
     }
-}
-
-void updateGathering(float deltaTime)
-{
-    // ...
 }
 {% endhighlight %}
 
@@ -259,7 +327,7 @@ What if we explore the real Gang of Four's State pattern already?
 
 As with all of the Gang of Four's patterns, we're going for a full object-oriented design: each state will become a class on its own that handles the logic in one part of the behavior. As before, we'll have a single state as a member object in the SCV class.
 
-All states will have a common interface: the `update` function we'll be delegating to within the SCV's `update` function.
+All states will have a common interface: the `update` and `executeAction` functions, same as before.
 
 The superclass for all of the states would be:
 
@@ -267,6 +335,7 @@ The superclass for all of the states would be:
 struct State
 {
     virtual void update(SCV *scv, float deltaTime) = 0;
+    virtual void executeAction(SCV *, const Action *action) = 0;
 };
 {% endhighlight %}
 
@@ -277,21 +346,33 @@ Let's now define some of the states we've already mentioned.
 {% highlight c++ %}
 struct Idle : public State
 {
+    Idle() : State()
+    {
+    }
+
     void update(SCV *scv, float deltaTime) override
     {
         // Idle: do nothing
     }
+
+    void executeAction(SCV *scv, const Action *action) override
+    {
+        if (auto moveToPoint = rtti_cast<const MoveToPointAction *>(action))
+        {
+            scv->setState(new MovingToTarget(moveToPoint->m_point));
+        }
+    }
 };
 {% endhighlight %}
 
-Easy peasy.
+Way better, don't you think?
 
 ### Gathering
 
 {% highlight c++ %}
 struct Gathering : public State
 {
-    Gathering(float gatheringTime) : m_remainingTime(gatheringTime)
+    Gathering(float gatheringTime) : State(), m_remainingTime(gatheringTime)
     {
     }
 
@@ -302,6 +383,14 @@ struct Gathering : public State
         {
             scv->fillUpTank();
             scv->moveTowards(scv->getResourceBuilding());
+        }
+    }
+
+    void executeAction(SCV *scv, const Action *action) override
+    {
+        if (auto moveToPoint = rtti_cast<const MoveToPointAction *>(action))
+        {
+            scv->setState(new MovingToTarget(moveToPoint->m_point));
         }
     }
 
@@ -321,11 +410,11 @@ void moveTowards(const Entity *entity)
 
 Do you start to see the benefits of using _stateful_ states? Our SCV class would be reduced to having the `State` it's in and whatever other properties that are relevant for the unit (i.e. the amount of a loaded resources). We don't have common properties to hold logic that is specific to one state.
 
-Each `State`, then, is responsible for taking care of performing its own logic with its own properties, separatedly from other `States`. This helps readability and maintainability as execution flow is held in the currently active state and we can only access the state's data or SCV's common one (i.e. loaded resources).
+Each `State`, then, is responsible for taking care of performing its own logic with its own properties, separatedly from other `States`. This helps readability and maintainability as execution flow is held in the currently active state and we can only access the state's data or SCV's common one (i.e. previously mentioned loaded resources).
 
 # Setting state revisited
 
-Alright, so now that we know how we're structuring our code, let's think about code flow once again. Since we're keeping all of the logic that is related to a state in itself, we'd like to detect when we're entering/exiting a state so we can have extra logic (i.e. setting an animation, playing a sound, notifying other systems).
+Alright, so now that we know how we're structuring our code, let's think about code flow once again. Since we're keeping all of the logic that's related to a state in itself, we'd like to detect when we're entering/exiting a state so we can have extra logic (i.e. setting an animation, playing a sound, notifying other systems, ...).
 
 For that, we'll have to modify our `State` to have two extra methods: `onEnter` and `onExit`.
 
@@ -335,6 +424,8 @@ struct State
     virtual void onEnter(SCV *scv, const State *previous) = 0;
     virtual void update(SCV *scv, float deltaTime) = 0;
     virtual void onExit(SCV *scv, const State *next) = 0;
+
+    virtual void executeAction(SCV *scv, const Action *action) = 0;
 };
 {% endhighlight %}
 
@@ -358,7 +449,97 @@ void setState(State *state)
 
 Of course, we could've passed our `SCV` instance in the `State` constructor rather than each function, but for the sake of simplicity we've kept it this way.
 
-This way, we could set some animation when we enter the `Idle` state, hide the unit when entering the `Depositing` state and showing it again when exiting it, or having different logic when we are coming from/going to certain states.
+Now, we could set some animation when we enter the `Idle` state, hide the unit when entering the `Depositing` state and showing it again when exiting it, or having different logic when we are coming from/going to certain states (i.e. drop currently loaded resources if going to `FleeingFromEntity` because we're scared but keeping them if going to `MovingToTarget`).
 
-# Finite State Machines
-# Hierarchical State Machines
+# Bonus: other applications
+
+Keeping state using this pattern isn't restricted to videogames and AI only, but it isn't a silver bullet either! Let's have a look at a couple of interesting uses:
+
+### Mouse interaction
+
+This can also be applied to fingers in a touch screen. You can separate your logic into two states: `Moving` and `Dragging`. Maybe you can have:
+
+{% highlight c++ %}
+struct Moving : public State
+{
+    Moving() : State()
+    {
+    }
+
+    void onEnter(DragAndDrop *dragAndDrop, const State *previous) override
+    {
+    }
+
+    void update(DragAndDrop *dragAndDrop, float deltaTime) override
+    {
+    }
+
+    void onExit(DragAndDrop *dragAndDrop, const State *previous) override
+    {
+    }
+
+    void executeAction(DragAndDrop *dragAndDrop, const Action *action) override
+    {
+        if(auto click = rtti_cast<const ClickAction *>(action))
+        {
+            Entity *entity = getEntityAt(click.getPosition());
+            dragAndDrop->setState(new Dragging(clickedEntity));
+        }
+    }
+};
+
+struct Dragging : public State
+{
+    Dragging(Entity *draggedEntity) : State(), m_entity(draggedEntity)
+    {
+    }
+
+    void onEnter(DragAndDrop *dragAndDrop, const State *previous) override
+    {
+        if(m_entity != nullptr)
+        {
+            m_entity->setBeingDragged(true);
+        }
+    }
+
+    void update(DragAndDrop *dragAndDrop, float deltaTime) override
+    {
+        if(m_entity != nullptr)
+        {
+            m_entity->setPosition(getCurrentMousePosition());
+        }
+    }
+
+    void onExit(DragAndDrop *dragAndDrop, const State *previous) override
+    {
+        if(m_entity != nullptr)
+        {
+           m_entity->setBeingDragged(false);
+        }
+    }
+
+    void executeAction(DragAndDrop *dragAndDrop, const Action *action) override
+    {
+        if(auto releaseClick = rtti_cast<const ReleaseClickAction *>(action))
+        {
+            dragAndDrop->setState(new Moving());
+        }
+    }
+};
+{% endhighlight %}
+
+### Net processes
+
+Say you're performing net requests and want to keep track of its state. You could control it with some states: `SendingRequest`, `RequestTimedOut`, `WaitingForResponse`, `ResponseReceived`, `ResponseTimedOut`, ...
+
+Maybe some of them keep a timer to check for timeouts, or keep request/response communication progress. You name it!
+
+### Menu navigation
+
+Have you ever thought about user navigation between menus? User is presented with the main one, then interacts to go to some other menu. Yes, those are `States` as well! Each one manages its logic and has its own properties, so it fits our pattern.
+
+But, what about going back to the previous menu? You could have a hardcoded graph of which menu is the _previous_ of another one. Or you could have a [Pushdown Automaton](https://en.wikipedia.org/wiki/Pushdown_automaton)!
+
+In a nutshell, it has a stack of `States` so you _push_ one when you enter a new menu and then _pop_ it when you exit it and you are again in the previous one. But that's for a future _coding scar_, don't rush it :)
+
+Thank you for reading!
