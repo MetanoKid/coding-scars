@@ -1,6 +1,7 @@
 ---
 layout: single
 title: State Pattern
+excerpt: This Gang of Four's pattern can help you structure your code!
 author: Meta
 category: Computer Science
 tags:
