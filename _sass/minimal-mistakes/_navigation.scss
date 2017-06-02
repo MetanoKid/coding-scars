@@ -61,6 +61,7 @@
   @include clearfix();
   margin-top: 1em;
   padding-top: 1em;
+  display: table;
 
   ul {
     margin: 0;
@@ -123,12 +124,11 @@
 
   /* next/previous buttons */
   &--pager {
-    display: block;
-    padding: 1em 2em;
-    float: left;
+    display: table-cell;
+    padding: 1em;
     width: 50%;
     font-family: $sans-serif;
-    font-size: $type-size-5;
+    font-size: $type-size-7;
     font-weight: bold;
     text-align: center;
     text-decoration: none;
@@ -143,6 +143,7 @@
     &:first-child {
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
+      border-right: 0;
     }
 
     &:last-child {
@@ -155,6 +156,30 @@
       color: mix(#fff, $gray, 75%);
       pointer-events: none;
       cursor: not-allowed;
+    }
+
+    .post-title {
+      display: block;
+      font-size: $type-size-3;
+    }
+  }
+
+  &.top {
+    margin-top: 0;
+    margin-bottom: 1em;
+    padding-top: 0;
+    border-top: 0;
+    font-size: $type-size-7;
+
+    a {
+      font-size: $type-size-5;
+      padding: 0.5em;
+    }
+
+    .post-title {
+      display: inline;
+      margin-left: 0.2em;
+      font-size: $type-size-5;
     }
   }
 }
