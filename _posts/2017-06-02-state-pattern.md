@@ -231,7 +231,64 @@ For clarification, we cast the action we've been passed to get the `Action` we'r
 
 That's just one of the actions the unit can take! It can also `MoveToEntity` or even `FleeFromTarget` if an enemy is coming. Now you take a deep breath and remember your old self not designing the system with some pen and paper.
 
-Let's start again. Mostly.
+And then you remember that you could use a `switch` statement to improve this mess!
+
+# Working with enumerations
+
+Alright, you throw an enumeration in your code like so:
+
+{% highlight c++ %}
+enum class State
+{
+    IDLE,
+    MOVING_TO_TARGET,
+    MOVING_TO_POINT,
+    GATHERING_RESOURCE,
+    DEPOSITING_RESOURCE,
+};
+{% endhighlight %}
+
+And add a new member in the SCV that will replace those dirty booleans you used to know which state you were in:
+
+{% highlight c++ %}
+State m_state;
+{% endhighlight %}
+
+What's the new look of the `update` method?
+
+{% highlight c++ %}
+void update(float deltaTime)
+{
+    switch(m_state)
+    {
+    case IDLE:
+        // do nothing
+        break;
+    case MOVING_TO_POINT:
+        // ...
+        break;
+    case MOVING_TO_TARGET:
+        // ...
+        break;
+    case GATHERING_RESOURCE:
+        m_gatheringTimeLeft -= deltaTime;
+            if (m_gatheringTimeLeft <= 0.0f)
+            {
+                fillUpTank();
+                // this one will do m_state = State::MOVING_TO_TARGET; internally
+                moveTowards(getResourceBuilding());
+            }
+        break;
+    case DEPOSITING_RESOURCE:
+        // ...
+        break;
+    }
+}
+{% endhighlight %}
+
+Well, it's better than nothing. But, sooner or later, this method will be monstruous enough to be unmaintainable.
+
+Let's start again. For the most part.
 
 # Stateless states
 
