@@ -13,7 +13,7 @@ Welcome to the first post in the series _{{ page.series }}_!
 
 In this post we'll try to understand the big picture of what we're trying to achieve with the full series. We'll also start building the Memory Manager in small steps, ensuring we build the tools we need as we go.
 
-So let's get started!
+So fasten your seatbelts, we're ready to take off!
 
 # Trick of the trade
 
@@ -25,15 +25,15 @@ Draw it once, take notes. Thrash it because you noticed you were missing somethi
 
 It's useful to even find out how the user (maybe that's _you_) will interact with your system. What's the top level API? Which classes/functions you can come up with?
 
-That's what we'll do first, so we know what we want to build.
+That's what we'll do first, so we find out what we _really_ want to build.
 
-# Understanding what we want to build
+# Understanding the big picture
 
 Okay, we want to build a Memory Manager. And _what is a Memory Manager_, you say?
 
 Let's define it as _a system that can receive requests to retrieve and return arbitrary-sized chunks of memory from an existent memory pool_.
 
-That means that the typical use of the system would be to request memory to store data, transform that memory and then return it back to the system somewhere down the line. The memory we deal with is finite, so subsequent requests of memory will result in less available memory in the pool. Not returning it back to the system can make it run out of memory.
+That means that the typical use of the system would be to request memory from a program, use it to store data, transform it and then return it back to the system somewhere down the line. The memory we deal with is finite, so subsequent requests of memory will result in less available memory in the pool. Not returning it back to the system can make it run out of memory.
 
 ## Top level API
 
@@ -56,9 +56,9 @@ int *intPointer = static_cast<int *>(memoryManager.allocate(sizeof(int)));
 memoryManager.deallocate(intPointer);
 {% endhighlight %}
 
-Alright, it's a weird example, but we'll try to understand it. The experienced programmers might have to bare with me for a second.
+Alright, it's a weird example, but we'll try to understand it.
 
-We take the `sizeof(int)`, which results in a number of bytes (the ones it takes to store an `int`). Then we request that amount of memory to the Memory Manager. Because the `allocate` method returns a `void *` (_pointer to anything_) we need to interpret it as an `int *`, hence the `static_cast<int *>`.
+We take the `sizeof(int)`, which results in a number of bytes (the ones it takes to store an `int`, typically 4 bytes in today's architectures). Then we request that amount of memory to the Memory Manager. Because the `allocate` method returns a `void *` (_pointer to anything_) we need to interpret it as an `int *`, hence the `static_cast<int *>`.
 
 Then we take the pointer to our `int` and update the memory it points to so it contains `42`. Now we have _a pointer that points to an `int` that has value 42_.
 
@@ -78,7 +78,7 @@ Okay, so that's the kind of thing we want our users to be able to do. Now let's 
 
 ## System design
 
-One of the requirements we set ourselves was that the memory we manage is finite. That means the `MemoryManager`, somehow, has access to a chunk of the full computer memory. Then, we slice it into chunks which have different sizes based on what is requested by the user. So, we need to keep track of all of the chunks we've sliced the memory into.
+One of the requirements we set ourselves was that the memory we manage is finite. That means the `MemoryManager`, somehow, has access to a chunk of the total available memory. Then, we slice it into chunks of have different sizes based on what is requested by the user. So, we need to keep track of all of the chunks we've sliced the memory into.
 
 With all that in mind, we can think of our system as:
 
@@ -97,11 +97,11 @@ struct cMemoryChunk
 };
 {% endhighlight %}
 
-Each of these `MemoryChunk` instances is part of a chain of chunks. It knows whether it's in use, the number of bytes it contains and a couple of pointers to the previous and next chunks in the chain. You might have noticed it looks like a [Doubly Linked List](https://en.wikipedia.org/wiki/Doubly_linked_list). And you're right. The `MemoryManager` would, then, have some kind of reference to the _head_ of the list of chunks. We'll see how, but it's not via a `MemoryChunk *`.
+Each of these `MemoryChunk` instances is part of a chain of chunks. It knows whether it's in use, the number of bytes it is made of and a couple of pointers to the previous and next chunks in the chain. You might have noticed it looks like a [Doubly Linked List](https://en.wikipedia.org/wiki/Doubly_linked_list). And you're right. The `MemoryManager` would, then, have some kind of reference to the _head_ of the list of chunks. We'll see how, but it's not via a `MemoryChunk *` as you might have thought!
 
-One caveat: although the user requests arbitrary memory in the form of a `void *` (check the API we defined), we're building `MemoryChunk` instances internally. That means we're using the `MemoryChunk` as kind of a _container_ of the memory the user requests, storing internal data for the manager and returning the memory that is _contained_ in the chunk.
+One caveat: although the user requests arbitrary memory in the form of a `void *` (check the API we defined), we're building `MemoryChunk` instances internally. That means we're using the `MemoryChunk` as kind of a _container_ of the memory the user requests, storing internal data for the manager and returning the memory that is _contained_ in the chunk. It sure sounds complex, but we'll go through it, don't fear.
 
-Knowing all this, we can start coding!
+Knowing all this, we can finally start coding!
 
 # First steps
 
@@ -130,6 +130,8 @@ private:
 };
 {% endhighlight %}
 
+Note that `::new` refers to `operator new` that's defined in the global namespace: the standard one. It's called explicitly this way so we don't accidentally call other `operator new` that could've been defined in the scope chain.
+
 An `unsigned char` can store values in the range `0..255` with a size of 1 byte and `m_memory` is a pointer to the first byte in an array with as many bytes as requested in the constructor. If we were to use this class as it is now, we'd be leaking memory. So we need to release the array we requested to the OS. Let's add that in the destructor:
 
 {% highlight c++ %}
@@ -140,17 +142,15 @@ cMemoryManager::~cMemoryManager()
 }
 {% endhighlight %}
 
-And with this, we've got the start and end of the life cycle for the memory we manage. But before we continue on with the `MemoryChunk`, we need some tool to know we're doing it right.
+And with this, we've got the start and end of the life cycle for the memory we'll be managing! But before we continue on with the `MemoryChunk`, we need some tool to know we're doing it right.
 
 ## Dumping the contents
 
-One useful tool we want to have is the ability to dump the contents of the memory we're managing in an hexadecimal view. We'll use the most common format: a left column with the pointer address, a central column with all of the bytes and a right column with an ASCII representation of each byte. Let's define a `dump` method:
+One useful tool we want to have is the ability to dump the contents of the memory we're managing in an hexadecimal view. Something similar to those awesome hexadecimal editors. We'll use the most common format: a left column with the pointer address, a central column with all of the bytes and a right column with an ASCII representation of each byte. Let's define a `dump` method like so:
 
-{% highlight c++ linenos %}
-std::string cMemoryManager::dump(unsigned int itemsPerRow) const
+{% highlight c++ %}
+std::string cMemoryManager::dump(unsigned int bytesPerRow) const
 {
-    const unsigned int bytesPerRow = itemsPerRow * sizeof(void *);
-
     const unsigned char *memoryIterator = m_memory;
     const unsigned char *characterIterator = m_memory;
 
@@ -159,6 +159,7 @@ std::string cMemoryManager::dump(unsigned int itemsPerRow) const
     // iterate over the memory
     for (; static_cast<unsigned int>(memoryIterator - m_memory) < m_totalBytesCount; memoryIterator += bytesPerRow)
     {
+        // print left column
         ss << static_cast<const void *>(memoryIterator) << ":  ";
 
         // iterate over the row
@@ -167,18 +168,18 @@ std::string cMemoryManager::dump(unsigned int itemsPerRow) const
             const unsigned int characterIteratorAsInt = static_cast<unsigned int>(*characterIterator);
             ss << std::uppercase << std::hex << std::setw(2) << std::setfill('0');
 
-            // general case
+            // bytes in central column: general case
             if (charIndex < bytesPerRow - 1)
             {
                 ss << characterIteratorAsInt << ":";
             }
-            // last item
+            // bytes in central column: last item
             else
             {
                 ss << characterIteratorAsInt << "  ";
                 ss << std::nouppercase << std::dec;
 
-                // get the string representation of the bytes in the row
+                // get the string representation of the bytes in the row (right column)
                 for (unsigned int representationIndex = 0; representationIndex < bytesPerRow; ++representationIndex)
                 {
                     const unsigned char &character = *(memoryIterator + representationIndex);
@@ -194,11 +195,15 @@ std::string cMemoryManager::dump(unsigned int itemsPerRow) const
 }
 {% endhighlight %}
 
-Wow, long code this time! Let's study it!
+Wow, long code this time! But don't panic, lets talk about it!
 
-TODO: explaination
+The idea is to iterate over the memory in small step of bytes at a time (as many as given in `bytesPerRow`). The start of each iteration marks the address of the first element in the row, so we can display that address in the first column.
 
-Let's test it! Assume we have this code:
+Then, within the step of bytes per row, we display one at a time separated by the `:` character. We use `characterIteratorAsInt` for display purposes, if we used the plain old `printf` we'd use `%02X` and pass the pointer to the byte.
+
+The last byte in the row also adds the string representation of the row as the right column. It basically takes the address of the first element in the row, displays its string representation (or a `.` if it can't be printed) and then moves into the next byte within the same row.
+
+Phew, not bad! Show me an example then! Assume we have this code:
 
 {% highlight c++ %}
 int main()
@@ -213,13 +218,25 @@ int main()
 If we execute it in Visual Studio with the **Debug x86** configuration, we get something similar to:
 
 {% highlight text %}
-00CC5F68:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
-00CC5F78:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
-00CC5F88:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
-00CC5F98:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000B6058:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000B6068:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000B6078:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000B6088:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
 {% endhighlight %}
 
-Please note that the addresses in the left column will change on each execution. As you can see, the memory is magically initialized to the `0xCD` value! _Oh, thank you Visual Studio in Debug mode_. As we mentioned before, the `.` is used whenever the character doesn't have a string representation.
+Please note that the addresses in the left column will change on each execution. The first byte in the first row has the address `0x000B6058`, and we're displaying 16 bytes per row. Each byte in the row would have offsets `+00`, `+01`, ..., `+0F` from the pointer in the left column. Let's illustrate this by adding a header row:
+
+{% highlight text %}
+           00:01:02:03:04:05:06:07:08:09:0A:0B:0C:0D:0E:0F
+000B6058:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000B6068:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000B6078:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000B6088:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+{% endhighlight %}
+
+That's better!
+
+As you can see, the memory is magically initialized to the `0xCD` value. That's because of the _kind_ MSVC in a Debug build. As we mentioned before, the `.` is used whenever the character doesn't have a string representation. MSVC uses the `0xCD` value to indicate it's clean memory, allocated and initialized.
 
 What happens if we use Visual Studio with the **Release x86** configuration?
 
@@ -230,20 +247,120 @@ What happens if we use Visual Studio with the **Release x86** configuration?
 00375BC8:  10:4C:37:00:10:4C:37:00:10:4C:37:00:10:4C:37:00  .L7..L7..L7..L7.
 {% endhighlight %}
 
-Wow, what is _THAT_? That's all thrash values from the memory we've received from the OS! Where did all of the `0xCD` values go? Turns out that Visual Studio is kind enough to initialize values for us while in Debug but not in Release. So be careful, kids, _always initialize your variables_. But before we do initilize our memory, let's execute it again in Visual Studio with **Debug x64** and **Release x64** configurations:
+Wow, what is _THAT_? That's all thrash values from the memory we've received from the OS! Where did all of the `0xCD` values go? We're not in a Debug build anymore, so we are _on the wild_!
 
-{% highlight text %}
-0000020801EF8480:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................................
-0000020801EF84A0:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................................
+So be careful, kids, **always initialize your variables**. And test Release builds regularly!
+
+# Memory thrashing
+
+Now that we've seen the difference between Debug and Release builds, another useful tool we'd like to have is a way of initializing memory for the different scenarios we'll come up with (memory we've just initialized, memory that was allocated in a chunk, memory that was returned to the manager, ...).
+
+Let's make use of the knowledge we gained with the [X-Macros]({{ site.baseurl }}{% post_url 2017-05-05-x-macros %}) post and define it as:
+
+{% highlight c++ %}
+#define MemoryManagerThrashingOptions \
+    TO(NONE,                                                                0, 0xFF) \
+    TO(ON_INITIALIZATION,                                              1 << 0, 0xCD) \
+    TO(ON_ALLOCATION,                                                  1 << 1, 0xAA) \
+    TO(ON_DEALLOCATION,                                                1 << 2, 0xDD) \
+    TO(ON_ALL,            ON_INITIALIZATION | ON_ALLOCATION | ON_DEALLOCATION, 0xFF) \
 {% endhighlight %}
 
+_What's this sorcery?_, you may ask. We're defining five values to model a bitmask so we can store several values. The `ON_ALL` value can be used as any of the three ones it references. We'll use these values with the `&` bitwise operator to check whether the flag is set. If we used a binary representation for all of the values we'd get:
+
 {% highlight text %}
-00000144EF14F7B0:  20:00:46:00:69:00:6C:00:65:00:73:00:20:00:28:00:78:00:38:00:36:00:29:00:5C:00:4D:00:69:00:63:00   .F.i.l.e.s. .(.x.8.6.).\.M.i.c.
-00000144EF14F7D0:  72:00:6F:00:73:00:6F:00:66:00:74:00:20:00:56:00:69:00:73:00:75:00:61:00:6C:00:20:00:53:00:74:00  r.o.s.o.f.t. .V.i.s.u.a.l. .S.t.
+NONE              -> 0000
+ON_INITIALIZATION -> 0001
+ON_ALLOCATION     -> 0010
+ON_DEALLOCATION   -> 0100
+ON_ALL            -> 0111
 {% endhighlight %}
 
-TODO: explaination
+We're creating two enumerations from this data: one to store the bitmask and one to store the thrashing value. Let's define them like:
 
-TODO:
-* Memory thrashing (on initialization, on allocation, on deallocation)
-* Initial memory chunk
+{% highlight c++ %}
+enum class eThrashing
+{
+#define TO(ID, MASK, HEX_VALUE) ID = MASK,
+    MemoryManagerThrashingOptions
+#undef TO
+};
+
+enum class eThrashingValue
+{
+#define TO(ID, MASK, HEX_VALUE) ID = HEX_VALUE,
+    MemoryManagerThrashingOptions
+#undef TO
+};
+{% endhighlight %}
+
+Now we can modify our constructor to receive the thrashing mask, so we can have different configurations:
+
+{% highlight c++ %}
+cMemoryManager(unsigned int bytes, eThrashing thrashing = eThrashing::ON_ALL);
+{% endhighlight %}
+
+And finally, we can apply it! Let's modify our constructor to check for this mask and apply the correct value:
+
+{% highlight c++ %}
+cMemoryManager::cMemoryManager(unsigned int bytes, eThrashing thrashing) :
+    m_memory(nullptr),
+    m_totalBytesCount(bytes),
+    m_thrashing(thrashing)
+{
+    m_memory = ::new unsigned char[bytes];
+
+    if (static_cast<int>(m_thrashing) & static_cast<int>(eThrashing::ON_INITIALIZATION))
+    {
+        memset(m_memory, static_cast<int>(eThrashingValue::ON_INITIALIZATION), m_totalBytesCount);
+    }
+}
+{% endhighlight %}
+
+Yeah, I know what you're thinking right now. _What on Earth are all those `static_cast<int>` for? What an ugly code!_
+
+Well, we've used `enum class` to define the enumerations to have type safe values, but with it we've lost the implicit conversion to `int` (and that's a good thing!). But, since we're working with these typed values as a bitmask, we need to be able to use the `&` operator to check whether the flag is set and that operator isn't defined for enumerations.
+
+Note that we've stored the mask for all of the thrashing we're performing in `m_thrashing`. Whenever we want to check if we have to apply thrashing, we check it against the `eThrashing` enumeration and then use the value in the `eThrashingValue` enumeration.
+
+### Testing thrashing
+
+Okay! Let's give it some runs!
+
+#### Debug x86
+
+{% highlight text %}
+011ED6E0:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+011ED6F0:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+011ED700:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+011ED710:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+{% endhighlight %}
+
+#### Release x86
+
+{% highlight text %}
+00F05C78:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+00F05C88:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+00F05C98:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+00F05CA8:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+{% endhighlight %}
+
+#### Debug x64
+
+{% highlight text %}
+000001E4A4F67100:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000001E4A4F67110:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000001E4A4F67120:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000001E4A4F67130:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+{% endhighlight %}
+
+#### Release x6
+
+{% highlight text %}
+000001805267E6B0:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000001805267E6C0:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000001805267E6D0:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+000001805267E6E0:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+{% endhighlight %}
+
+It seems we've done it right! Congratulations :)
