@@ -354,7 +354,7 @@ Okay! Let's give it some runs!
 000001E4A4F67130:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
 {% endhighlight %}
 
-#### Release x6
+#### Release x64
 
 {% highlight text %}
 000001805267E6B0:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
@@ -364,3 +364,94 @@ Okay! Let's give it some runs!
 {% endhighlight %}
 
 It seems we've done it right! Congratulations :)
+
+# Initial chunk
+
+Remember we mentioned we were slicing our internal memory in small chunks of arbitrary size? We're doing that now! Let me remember the definition of our `MemoryChunk`:
+
+{% highlight c++ %}
+struct cMemoryChunk
+{
+    bool m_isInUse;
+    unsigned int m_bytes;
+
+    cMemoryChunk *m_previous;
+    cMemoryChunk *m_next;
+};
+{% endhighlight %}
+
+If we were to use the `MemoryManager` as a traditional Doubly Linked List we'd have a pointer to the head and tail of the list (`MemoryChunk` nodes). However, because we're using the memory we're managing to store the chunks themselves, we'll store all nodes as part of the memory itself (and just use the head for now)! And how will we do it?
+
+## Introducing placement new
+
+I guess that, by now, you are somewhat used to the `new` operator. You use it to request memory and build an object into the requested memory. However, there's another kind of `new` operator that doesn't request memory but uses an existent one to build the object in it. That is the so called `placement new`. And what is the syntax for it?
+
+{% highlight c++ %}
+Class *c = new (pointer) Class(args);
+{% endhighlight %}
+
+Where `Class` is the class you want to build, `pointer` is a pointer to some writable memory and `args` is a collection of arguments to pass to the constructor.
+
+With this in mind, we just need to build our first chunk in our memory! Let's add it to our constructor so it looks like:
+
+{% highlight c++ %}
+cMemoryManager::cMemoryManager(unsigned int bytes, eThrashing thrashing) :
+    m_memory(nullptr),
+    m_freeBytesCount(bytes - sizeof(cMemoryChunk)),
+    m_totalBytesCount(bytes),
+    m_thrashing(thrashing)
+{
+    m_memory = ::new unsigned char[bytes];
+
+    // optional thrashing
+    if (static_cast<int>(m_thrashing) & static_cast<int>(eThrashing::ON_INITIALIZATION))
+    {
+        memset(m_memory, static_cast<int>(eThrashingValue::ON_INITIALIZATION), m_totalBytesCount);
+    }
+
+    // first chunk
+    new (m_memory) cMemoryChunk(m_freeBytesCount);
+}
+{% endhighlight %}
+
+As you can see, we've added a new variable to our `MemoryManager` that holds the amount of memory that's still free to be used. We'll update it when we add allocations and deallocations.
+
+Okay, let's check what happened to our memory now that we've added the chunk! Let's dump the contents in a x86 build:
+
+{% highlight text %}
+00137218:  00:CD:CD:CD:30:00:00:00:00:00:00:00:00:00:00:00  ....0...........
+00137228:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+00137238:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+00137248:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
+{% endhighlight %}
+
+Now the first row of the dump has data! But which data? Let's study it!  
+It seems like we've used 16 bytes. Do you know what does `sizeof(cMemoryChunk)` yield in this build? Yeah, you guessed right: 16 bytes. Do you remember which members were defined in the `MemoryChunk` structure?
+
+{% highlight c++ %}
+struct cMemoryChunk
+{
+    bool m_isInUse;             // sizeof(bool)           == 1
+    unsigned int m_bytes;       // sizeof(unsigned int)   == 4
+
+    cMemoryChunk *m_previous;   // sizeof(cMemoryChunk *) == 4 (x86 build)
+    cMemoryChunk *m_next;       // sizeof(cMemoryChunk *) == 4 (x86 build)
+};
+{% endhighlight %}
+
+Woah, wait a second! If we sum up the individual sizes of the members we don't get the total of 16 bytes! That's because of _memory padding_.
+
+We start our structure with a `bool`, which takes 1 byte. Then we have an `unsigned int`, which takes 4 bytes. The compiler will then add padding (extra bytes) before this member because their alignment requirements differ and the `unsigned int` one is larger than the `bool` one. That's why, in our case, we're spending 4 bytes to store a `bool`.
+
+What else can we learn from the first row of the dumped memory? Let's have a look at it again!
+
+{% highlight text %}
+00:CD:CD:CD -> m_isInUse
+30:00:00:00 -> m_bytes
+00:00:00:00 -> m_previous
+00:00:00:00 -> m_next
+{% endhighlight %}
+
+As we can see, there's some memory left unchanged with the `0xCD` value: the one used to pad members. `0x00 == 0`, which is our `false` value for the `m_isInUse` member. `0x30 == 48`, which is the correct number of free bytes we have in our memory (remember we have a total of 64 bytes and the chunk is 16 bytes). Both `m_previous` and `m_next` point to `nullptr`, which is `0x0000000`.
+
+Finally, there's something else worth mentioning about the dump: the machine it was executed uses [little endian](https://en.wikipedia.org/wiki/Endianness) ordering. If we were to represent `48` in hexadecimal with 4 bytes we'd use `0x0000030`. However, we can see it's stored as `30:00:00:00`! In little endian architectures, the least significant byte is written first and the most significant one is written last. That's why we see it _flipped_ in memory.
