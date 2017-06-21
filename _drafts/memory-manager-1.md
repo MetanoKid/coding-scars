@@ -9,101 +9,14 @@ tags:
 series: Memory Management in C++
 ---
 
-Welcome to the first post in the series _{{ page.series }}_!
+Welcome back to the series on {{ page.series }}!
 
-In this post we'll try to understand the big picture of what we're trying to achieve with the full series. We'll also start building the Memory Manager in small steps, ensuring we build the tools we need as we go.
+In the previous post we tried to understand the big picture of what we try to build and discovered the pieces we'll build to complete the system.
 
-So fasten your seatbelts, we're ready to take off!
 
-# Trick of the trade
 
-Let me give you a piece of advice. Something I learned some time after I started learning Computer Science. Something I was told when I started programming but I didn't understand by then.
 
-_**Whenever you want to build a system, take pen and paper and draw the system you want to end up having.**_
 
-Draw it once, take notes. Thrash it because you noticed you were missing something. Start drawing it again, discover dependencies, interactions. Find out how you're structuring your code. Be sure you know what you are building before you even open an IDE and start coding.
-
-It's useful to even find out how the user (maybe that's _you_) will interact with your system. What's the top level API? Which classes/functions you can come up with?
-
-That's what we'll do first, so we find out what we _really_ want to build.
-
-# Understanding the big picture
-
-Okay, we want to build a Memory Manager. And _what is a Memory Manager_, you say?
-
-Let's define it as _a system that can receive requests to retrieve and return arbitrary-sized chunks of memory from an existent memory pool_.
-
-That means that the typical use of the system would be to request memory from a program, use it to store data, transform it and then return it back to the system somewhere down the line. The memory we deal with is finite, so subsequent requests of memory will result in less available memory in the pool. Not returning it back to the system can make it run out of memory.
-
-## Top level API
-
-We want to expose some functions to the user so she can fulfill the requirements we've just defined. We're building it in C++, so we can define the following class:
-
-{% highlight c++ %}
-class cMemoryManager
-{
-public:
-    void *allocate(unsigned int bytes);
-    void deallocate(void *pointer);
-};
-{% endhighlight %}
-
-With this, the user can do:
-
-{% highlight c++ %}
-int *intPointer = static_cast<int *>(memoryManager.allocate(sizeof(int)));
-*intPointer = 42;
-memoryManager.deallocate(intPointer);
-{% endhighlight %}
-
-Alright, it's a weird example, but we'll try to understand it.
-
-We take the `sizeof(int)`, which results in a number of bytes (the ones it takes to store an `int`, typically 4 bytes in today's architectures). Then we request that amount of memory to the Memory Manager. Because the `allocate` method returns a `void *` (_pointer to anything_) we need to interpret it as an `int *`, hence the `static_cast<int *>`.
-
-Then we take the pointer to our `int` and update the memory it points to so it contains `42`. Now we have _a pointer that points to an `int` that has value 42_.
-
-Now that we're done with it, we return the memory back to the Memory Manager.
-
-This is basically the same code as doing the following thing:
-
-{% highlight c++ %}
-int *intPointer = new int;
-*intPointer = 42;
-delete intPointer;
-{% endhighlight %}
-
-The difference is that we control the underlying memory instead of letting the OS deal with it.
-
-Okay, so that's the kind of thing we want our users to be able to do. Now let's take pen and paper and start designing our system!
-
-## System design
-
-One of the requirements we set ourselves was that the memory we manage is finite. That means the `MemoryManager`, somehow, has access to a chunk of the total available memory. Then, we slice it into chunks of have different sizes based on what is requested by the user. So, we need to keep track of all of the chunks we've sliced the memory into.
-
-With all that in mind, we can think of our system as:
-
-TODO: picture
-
-By drawing this picture we've discovered a new class for our system: the `MemoryChunk`. And we've also found some of the data it needs to have. Let's define it as:
-
-{% highlight c++ %}
-struct cMemoryChunk
-{
-    bool m_isInUse;
-    unsigned int m_bytes;
-
-    cMemoryChunk *m_previous;
-    cMemoryChunk *m_next;
-};
-{% endhighlight %}
-
-Each of these `MemoryChunk` instances is part of a chain of chunks. It knows whether it's in use, the number of bytes it is made of and a couple of pointers to the previous and next chunks in the chain. You might have noticed it looks like a [Doubly Linked List](https://en.wikipedia.org/wiki/Doubly_linked_list). And you're right. The `MemoryManager` would, then, have some kind of reference to the _head_ of the list of chunks. We'll see how, but it's not via a `MemoryChunk *` as you might have thought!
-
-One caveat: although the user requests arbitrary memory in the form of a `void *` (check the API we defined), we're building `MemoryChunk` instances internally. That means we're using the `MemoryChunk` as kind of a _container_ of the memory the user requests, storing internal data for the manager and returning the memory that is _contained_ in the chunk. It sure sounds complex, but we'll go through it, don't fear.
-
-Knowing all this, we can finally start coding!
-
-# First steps
 
 Okay, we're dealing with some big chunk of memory ourselves and slice it into small pieces by user request. But where does that memory come from? How do we obtain and release that memory?
 
