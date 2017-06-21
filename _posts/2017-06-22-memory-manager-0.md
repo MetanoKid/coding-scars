@@ -1,7 +1,7 @@
 ---
 layout: single
 title: "Memory Management in C++: introduction and design"
-excerpt:
+excerpt: In this first entry of the series we'll have a look at the big picture of the system
 author: Meta
 category: Computer Science
 tags:
