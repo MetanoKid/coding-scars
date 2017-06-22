@@ -314,7 +314,64 @@ struct State
 };
 {% endhighlight %}
 
-This is a _stateless_ state: it doesn't hold any data, just a pointer to its `update` and `executeAction` functions provided during construction. The only thing we're missing is the delegation of the `SCV::update` and `SCV::executeAction` functions to the current state's:
+_Wait, what is **THAT**?!_
+
+Okay, okay! Let's break it down into pieces and understand what's going on.
+
+{% highlight c++ %}
+typedef std::function<void(SCV*, float)> TOnUpdate;
+{% endhighlight %}
+
+By using `typedef` in C++ you declare a _typed alias_ of another type, usually a somewhat convoluted one. These two statements are, then, equivalent:
+
+{% highlight c++ %}
+std::function<void(SCV*, float)> m_onUpdate;
+TOnUpdate m_onUpdate;
+{% endhighlight %}
+
+It's a pain to write the full type twice or more times. Imagine you had written it several times and then need a new parameter to the function: you'd have to change it in a lot of places! If you `typedef` it, you just change the definition of the type in one place.
+
+And now for the hard part:
+
+{% highlight c++ %}
+std::function<void(SCV*, float)> m_onUpdate;
+{% endhighlight %}
+
+A `std::function` is a function wrapper that can store any function. Its definition is:
+
+{% highlight c++ %}
+template<class ReturnType, class... ArgumentType>
+class function<ReturnType(ArgumentType...)>;
+{% endhighlight %}
+
+So, for our example, we're defining a _wrapper that points to a function whose return type is `void`, which has two parameters and their types are `SCV*` and `float`_.
+
+Take this other example:
+
+{% highlight c++ %}
+#include <functional>
+#include <iostream>
+#include <string>
+
+std::string buildGreeting(const std::string &name)
+{
+    return "Hi, " + name + "!";
+}
+
+int main()
+{
+    std::function<std::string(const std::string &)> greetingFunction = &buildGreeting;
+
+    std::string greeting = greetingFunction("Jane Doe");
+    std::cout << greeting << std::endl; // prints: "Hi, Jane Doe!"
+
+    return 0;
+}
+{% endhighlight %}
+
+I guess this example looks useless, but it shows the idea.
+
+Going back on track! That is a _stateless_ state: it doesn't hold any data, just a pointer to its `update` and `executeAction` functions provided during construction. The only thing we're missing is the delegation of the `SCV::update` and `SCV::executeAction` functions to the current state's:
 
 {% highlight c++ %}
 void update(float deltaTime)
