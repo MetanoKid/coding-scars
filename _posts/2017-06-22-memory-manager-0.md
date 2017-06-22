@@ -8,7 +8,7 @@ tags:
   - Programming
   - Memory Management
   - STL
-  - Videogames
+  - Videogames development
 series: Memory Management in C++
 ---
 
@@ -26,15 +26,20 @@ That source, in this case, was a custom Memory Manager. It was a rather naive on
 
 In C++, each time you need dynamic memory you use `new` (`malloc` in C), some memory is allocated on the heap and you get a pointer to it. When you're done with it, you use `delete` (`free` in C) and the memory is returned to the place it came from.
 
-While doing that, you are in fact calling the OS. It is, in turn, switching contexts between your application and the kernel to fulfill your requests. And that's each time you call `new` and `delete`! We're talking about tiny fractions of a second on each context switch, but they will stack if you are performing them continuously.
+~~While doing that, you are in fact calling the OS. It is, in turn, switching contexts between your application and the kernel to fulfill your requests. And that's each time you call `new` and `delete`! We're talking about tiny fractions of a second on each context switch, but they will stack if you are performing them continuously.~~
 
-While this might not seem like a big deal for all applications, some high-performant ones do require memory management to be quick. This is something well widespread in videogames development. Consoles aren't as fast as computers, and none of them would reject those extra fractions of a second.
+**Edit**: thanks to [@FlohOfWoe](https://twitter.com/FlohOfWoe) and [@dcanadasm](https://twitter.com/dcanadasm) for pointing out that not all calls to `new` and `malloc` result in a call to the OS.
+
+Long story short, `new` and `malloc` are runtime library calls that perform some memory management under the hood, somewhat similarly to what we're trying to achieve with our manager. They might need to perform a call to the low-level API (still not OS) to obtain the memory the user requested. In case it is out of memory, it will perform a call to the OS and retrieve a full memory page (bigger than the memory that was requested). Then, this memory page is sliced into smaller chunks and managed by the runtime library. The idea is to minimize context switches, that are considered slow.  
+Check [this answer on StackOverflow](https://stackoverflow.com/a/5716525/1257656) for more info.
+
+Back on track, this concept might not seem like a big deal for the majority of the programs. However, some high-performant ones do require memory management to be consistent: you don't want to have a sudden hiccup because your allocation required an OS call. Videogames are one of this kind of programs, and these OS calls can be specially slow in consoles or other devices than computers.
 
 # What's the idea?
 
 Okay so, from what I know, the most common strategy when building a Memory Manager is to allocate a big chunk of memory on a single call on the early startup of the application. Maybe you have several chunks, maybe some of their sizes are fixed, maybe some are dynamic. But the idea is similar.
 
-During the execution of said application, all the calls to `new` and `delete` are redirected to the Memory Manager in some way (the `Allocator` is one option), which acts on the previous big memory chunk. Think of it as if it was the OS handling which memory is being allocated, but it's working on the _user space_ instead of the _kernel space_ so no context switch is performed.
+During the execution of said application, all the calls to `new` and `delete` are redirected to the Memory Manager in some way (the `Allocator` is one option), which acts on the previous big memory chunk. Think of it as if it was the OS handling which memory is being allocated, but it's always working on the _user space_ instead of the _kernel space_ so no context switch is performed in the worst case.
 
 When the application is closing, the big memory chunk is returned to the OS and no memory is leaked in the process.
 
@@ -44,8 +49,9 @@ Let's summarize them into this list:
 
   * **Profiling and tuning**: because you know which allocations are being made you can extract some statistics on which memory sizes are being requested the most, which is your memory usage peak, whether you're running out of memory or identify code that uses more memory than it really needs to.
   * **Full control of the memory**: you're responsible for dealing with the memory layout yourself, so you can decide how you partition it, which memory is returned to the user and what to do with the one you recover.
-  * **Potential performance improvement**: we've claimed the calls to the OS can be slow in certain scenarios. If you deal with your memory in a nice way you can outperform the OS.
-  * **Debugging**: you can add debug information to user's allocations. For example, at the cost of extra memory, you could store the file and the line from which the allocation was made and track memory leaks down. Or you could include guards on each allocations to find memory stomps.
+  * **Potential performance improvement**: we've claimed the calls to the OS can be slow in certain scenarios. If you deal with your memory in a nice way you can avoid calling the OS and with it, improve performance.
+  * **Fragmentation control**: this one is probably a mix of the previous two. Because you know how the memory is laid out and the life time of the chunks, you could try to minimize fragmentation by combining neighbouring free ones, have fixed sized chunks that exactly fit the user's memory requirements, or pack allocations that last for the same amount of time in a common chunk and then deallocate them altogether, for example. This is a very advanced topic that we won't cover in depth in the series.
+  * **Debugging**: you can add debug information to user's allocations. For example, at the cost of extra memory, you could store the file and the line from which the allocation was made and track memory leaks down. Or you could include guards on each allocations to find memory stomps. Or you could include an identifier of the sub-system that requested the memory so you can know at any time which one is using more memory.
 
 # Goal of this series
 
