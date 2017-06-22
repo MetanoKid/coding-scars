@@ -8,7 +8,7 @@ tags:
   - Programming
   - Memory Management
   - STL
-  - Videogames
+  - Videogames development
 series: Memory Management in C++
 ---
 
