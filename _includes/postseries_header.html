@@ -1,0 +1,12 @@
+{% if page.series %}
+	<div class="notice series-summary">
+		<h1 class="series-title">{{ page.series }}</h1>
+		<ol class="posts-list">
+		{% for post in site.posts %}
+			{% if post.series == page.series %}
+				<li><a href="{{ site.baseurl }}/{{ post.url | slugify }}">{{ post.title | capitalize }}</a></li>
+			{% endif %}
+		{% endfor %}
+		</ol>
+	</div>
+{% endif %}
