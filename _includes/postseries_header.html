@@ -1,10 +1,18 @@
 {% if page.series %}
-	<div class="notice series-summary">
+	{% capture title_series_prefix %}{{ page.series }}: {% endcapture %}
+	<div class="notice series-summary {{ include.position }}">
 		<h1 class="series-title">{{ page.series }}</h1>
 		<ol class="posts-list">
-		{% for post in site.posts %}
+		{% for post in site.posts reversed %}
 			{% if post.series == page.series %}
-				<li><a href="{{ site.baseurl }}/{{ post.url | slugify }}">{{ post.title | capitalize }}</a></li>
+				{% capture series_entry_title %}{{ post.title | remove: title_series_prefix | capitalize }}{% endcapture %}
+				<li>
+					{% if post == page %}
+						{{ series_entry_title }}
+					{% else %}
+						<a href="{{ site.baseurl }}/{{ post.url | slugify }}">{{ series_entry_title }}</a>
+					{% endif %}
+				</li>
 			{% endif %}
 		{% endfor %}
 		</ol>
