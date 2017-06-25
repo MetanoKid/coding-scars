@@ -15,6 +15,34 @@
   }
 }
 
+.series-summary {
+  border: 1px solid $primary-color;
+  padding: 0.5em;
+
+  &.head {
+    margin-top: 0 !important;
+  }
+
+  &.end {
+    margin-bottom: 0 !important;
+  }
+
+  .series-title {
+    text-align: center;
+    font-size: $type-size-4;
+    border-bottom: 1px solid $primary-color;
+    padding-bottom: 0.2em;
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+  }
+
+  .posts-list {
+    margin-bottom: 0;
+  }
+}
+
+/* ========================================================================== */
+
 #main {
   @include container;
   @include clearfix;
