@@ -15,7 +15,7 @@ series: Memory Management in C++
 
 Welcome back to the series on {{ page.series }}!
 
-In the previous post we tried to understand the big picture of what we try to build and discovered the pieces we'll build to complete the system. In this post we'll dive into the code and start creating the foundation of our Memory Manager.
+In the previous post we tried to understand the big picture of what we're building on this series and discovered the pieces we'll be building to complete the system. In this post we'll dive into the code and start creating the foundation of our Memory Manager.
 
 Are you ready?
 
@@ -23,7 +23,7 @@ Are you ready?
 
 If you recall from the previous post, the basic concept for our manager was that we'd get a big chunk of memory and we'd deal with how it is sliced.
 
-So, the idea is simple: during the program's startup we build our `MemoryManager`. It will, in turn, request enough memory to the OS via the `new` operator and keep the pointer to that memory. From then on, we can't perform new memory requests: we're doing it only once in a big chunk.
+So, the idea is: during the program's startup we build our `MemoryManager`. It will, in turn, request enough memory to the OS via the `new` operator and keep the pointer to that memory. From then on, we can't perform new memory requests: we're doing it only once in a big chunk.
 
 We could then create our `MemoryManager` definition with this behavior:
 
@@ -39,8 +39,8 @@ public:
     }
 
 private:
-    unsigned int m_totalBytesCount;
     unsigned char *m_memory;
+    unsigned int m_totalBytesCount;
 };
 {% endhighlight %}
 
@@ -51,7 +51,7 @@ An `unsigned char` can store values in the range `0..255` with a size of 1 byte 
 {% highlight c++ %}
 cMemoryManager::~cMemoryManager()
 {
-    ::delete[] m_memory;
+    ::delete [] m_memory;
     m_memory = nullptr;
 }
 {% endhighlight %}
@@ -60,7 +60,7 @@ And with this, we've got the start and end of the life cycle for the memory we'l
 
 ## Dumping the contents
 
-One of the most useful tools we want to have is the ability to dump the contents of the memory we're managing in a readable format. Something similar to those awesome hexadecimal editors. We'll use the most common format: a left column with the pointer address, a central column with all of the bytes and a right column with an ASCII representation of each byte. Let's define a `dump` method like so:
+One of the most useful tools we want to have is the ability to dump the contents of the memory we're managing in a readable format. Something similar to those awesome hexadecimal editors. We'll use the most common format: a left column with the memory address, a central column with all of the bytes with an offset from that address and a right column with an ASCII representation of each byte. Let's define a `dump` method like so:
 
 {% highlight c++ %}
 std::string cMemoryManager::dump(unsigned int bytesPerRow) const
@@ -109,11 +109,11 @@ std::string cMemoryManager::dump(unsigned int bytesPerRow) const
 }
 {% endhighlight %}
 
-Wow, long code this time! And a bit ugly due to the `operator<<` to deal with the `stringstream`! But don't panic, lets talk about how it works!
+Wow, long code this time! And a bit ugly due to the `operator<<` to deal with the `stringstream`! But don't panic, let's talk about how it works!
 
-The idea is to iterate over the memory in small step of bytes at a time (as many as given in `bytesPerRow`, lets say 16). The start of each iteration marks the address of the first element in the row, so we can display that address in the first column.
+The idea is to iterate over the memory in small step of bytes at a time (as many as given in `bytesPerRow`, let's say 16). The start of each iteration marks the address of the first element in the row, so we can display that address in the first column.
 
-Then, within the step of bytes per row, we display one at a time separated by the `:` character. We use `characterIteratorAsInt` for display purposes, if we used the plain old `printf` we'd use `%02X` and pass the pointer to the byte instead of having an intermediate variable. But, we'd lose the ability to build it into a string.
+Then, within the step of `bytesPerRow`, we display one byte at a time separated by the `:` character. We use `characterIteratorAsInt` for display purposes, if we were to use the gool old `printf` family we'd use `%02X` and pass the pointer to the byte instead of having an intermediate variable.
 
 The last byte in the row also adds the string representation of the bytes in the row as the right column. It basically takes the address of the first element in the row, displays its string representation (or a `.` if it can't be printed) and then moves into the next byte within the same row until it's done.
 
@@ -141,7 +141,7 @@ If we execute it in Visual Studio with the **Debug x86** configuration, we get s
 Please note that the addresses in the left column will change on each execution. The first byte in the first row has the address `0x000B6058`, and we're displaying 16 bytes per row. Each byte in the row would have offsets `+00`, `+01`, ..., `+0F` from the pointer in the left column. Let's illustrate this by manually adding a header row:
 
 {% highlight text %}
-           00:01:02:03:04:05:06:07:08:09:0A:0B:0C:0D:0E:0F
+Offset    +00:01:02:03:04:05:06:07:08:09:0A:0B:0C:0D:0E:0F
 000B6058:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
 000B6068:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
 000B6078:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
@@ -183,14 +183,16 @@ Let's make use of the knowledge we gained with the [X-Macros]({{ site.baseurl }}
     TO(ON_ALL,            ON_INITIALIZATION | ON_ALLOCATION | ON_DEALLOCATION, 0xFF) \
 {% endhighlight %}
 
-_What's this sorcery?_, you may ask. We're defining five values to model a bitmask so we can store several values in only one variable. The `ON_ALL` value represents a combination of the three ones it references. We'll use these values with the `&` bitwise operator to check whether the flag is set. If we were to use a binary representation for all of the values we'd get:
+_What's this sorcery?_, you may ask. Let's go through it.
+
+We're defining five values to model a bitmask so we can store several values in only one variable: the one that defines when to apply memory thrashing. The `ON_ALL` value represents the combination of the three ones it references. If we were to use a binary representation for all of the values we'd get:
 
 {% highlight text %}
-NONE              -> 0000
-ON_INITIALIZATION -> 0001
-ON_ALLOCATION     -> 0010
-ON_DEALLOCATION   -> 0100
-ON_ALL            -> 0111
+NONE              -> 0000 (0)
+ON_INITIALIZATION -> 0001 (1)
+ON_ALLOCATION     -> 0010 (2)
+ON_DEALLOCATION   -> 0100 (4)
+ON_ALL            -> 0111 (7)
 {% endhighlight %}
 
 We're then creating two enumerations from this data: one to store the bitmask and one to store the thrashing value. And both enumerations come from the same data we shown in the macro. Let's define them as:
@@ -236,7 +238,7 @@ cMemoryManager::cMemoryManager(unsigned int bytes, eThrashing thrashing) :
 
 Yeah, I know what you're thinking right now. _What on Earth are all those `static_cast<int>` for? What an ugly code!_
 
-Well, we've used `enum class` to define the enumerations to have type safe values, but with it we've lost the implicit conversion to `int` (and that's a good thing!). But, since we're working with these typed values as a bitmask, we need to be able to use the `&` operator to check whether the flag is set and that operator isn't defined for enumerations.
+Well, we've used `enum class` to define the enumerations to have type safe values, but with it we've lost the implicit conversion to `int` (and that's a good thing!). However, since we're working with these typed values as a bitmask, we need to be able to use the `&` operator to check whether the flag is set and that operator isn't defined for enumerations.
 
 Note that we've stored the mask for all of the thrashing we're performing in `m_thrashing`. Whenever we want to check if we have to apply thrashing, we check it against the `eThrashing` enumeration and then use the value in the `eThrashingValue` enumeration.
 
@@ -284,7 +286,7 @@ It seems we've done it right! Congratulations :)
 
 # Initial chunk
 
-Remember we mentioned we were slicing our internal memory in small chunks of arbitrary size? We're doing that now! Let me remember the definition of our `MemoryChunk`:
+Remember we mentioned we were slicing our internal memory in small chunks of arbitrary size? We're getting ready to do that now! Let me remember the definition of our `MemoryChunk`:
 
 {% highlight c++ %}
 struct cMemoryChunk
@@ -297,13 +299,13 @@ struct cMemoryChunk
 };
 {% endhighlight %}
 
-We've added two fields to the chunk: a flag to know if this chunk is free and the number of bytes in use for this chunk.
+We've added two fields to the chunk: a flag to know if this chunk is free and the number of bytes in use for this chunk. There's nothing where we're storing the memory for this chunk, we'll see where that's happening in the next post.
 
 If we were to use the `MemoryManager` as a traditional Doubly Linked List we'd have a pointer to the head and tail of the list (`MemoryChunk` nodes). However, because we're using the memory we're managing to store the chunks themselves, we'll store all nodes _in_ the managed memory (and just use the head for now)! And how will we do it?
 
 ## Introducing placement new
 
-I guess that, by now, you are somewhat used to the `new` operator. You use it to request memory and build an object into the requested memory. However, there's another kind of `new` operator that doesn't request memory but uses an existent one to build the object in. That is the so called `placement new`. And what is the syntax for it?
+I guess that, by now, you are somewhat used to the `new` operator. You use it to request memory and build an object into the requested memory. However, there's another kind of `new` operator that doesn't request memory but uses an existent one to build the object in. That is the `placement new`. And what is the syntax for it?
 
 {% highlight c++ %}
 Class *c = new (pointer) Class(args);
@@ -360,9 +362,9 @@ struct cMemoryChunk
 
 Woah, wait a second! If we sum up the individual sizes of the members we don't get the total of 16 bytes! That's because of _memory padding_.
 
-We start our structure with a `bool`, which takes 1 byte. Then we have an `unsigned int`, which takes 4 bytes. The compiler will then add padding (extra bytes) before this member because their alignment requirements differ and the `unsigned int` one is larger than the `bool` one. That's why, in our case, we're spending 4 bytes to store a `bool` (and )
+We start our structure with a `bool`, which takes 1 byte. Then we have an `unsigned int`, which takes 4 bytes. The compiler will then add padding (extra bytes) before this member because their alignment requirements differ and the `unsigned int` one is larger than the `bool` one. That's why, in our case, we're spending 4 bytes to store a `bool` (and wasting 3 of them!).
 
-What else can we learn from the first row of the dumped memory? Let's have a look at it again!
+What else can we learn from the first row of the dumped memory? Let's have a look at it again, but this time with the sizes we've seen separated:
 
 {% highlight text %}
 00:CD:CD:CD -> m_isInUse
