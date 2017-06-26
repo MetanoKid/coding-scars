@@ -161,21 +161,21 @@ What happens if we use Visual Studio with the **Release x86** configuration?
 00375BC8:  10:4C:37:00:10:4C:37:00:10:4C:37:00:10:4C:37:00  .L7..L7..L7..L7.
 {% endhighlight %}
 
-Wow, what is _THAT_? That's all thrash values from the memory we've received from the OS! Where did all of the `0xCD` values go? We're not in a Debug build anymore, so we are _on the wild_! Which brings me to another piece of advice:
+Wow, what is _THAT_? That's all trash values from the memory we've received from the OS! Where did all of the `0xCD` values go? We're not in a Debug build anymore, so we are _on the wild_! Which brings me to another piece of advice:
 
 **Always initialize your variables.**
 {: .notice--primary}
 
 And regularly test Release builds!
 
-# Memory thrashing
+# Memory trashing
 
 Now that we've seen the difference between Debug and Release builds, another useful tool we'd like to have is a way of initializing memory for the different scenarios we'll come up with (memory we've just initialized, memory that was allocated in a chunk, memory that was returned to the manager, ...).
 
 Let's make use of the knowledge we gained with the [X-Macros]({{ site.baseurl }}{% post_url 2017-05-05-x-macros %}) post (because, why not?) and define it as:
 
 {% highlight c++ %}
-#define MemoryManagerThrashingOptions \
+#define MemoryManagerTrashingOptions \
     TO(NONE,                                                                0, 0xFF) \
     TO(ON_INITIALIZATION,                                              1 << 0, 0xCD) \
     TO(ON_ALLOCATION,                                                  1 << 1, 0xAA) \
@@ -185,7 +185,7 @@ Let's make use of the knowledge we gained with the [X-Macros]({{ site.baseurl }}
 
 _What's this sorcery?_, you may ask. Let's go through it.
 
-We're defining five values to model a bitmask so we can store several values in only one variable: the one that defines when to apply memory thrashing. The `ON_ALL` value represents the combination of the three ones it references. If we were to use a binary representation for all of the values we'd get:
+We're defining five values to model a bitmask so we can store several values in only one variable: the one that defines when to apply memory trashing. The `ON_ALL` value represents the combination of the three ones it references. If we were to use a binary representation for all of the values we'd get:
 
 {% highlight text %}
 NONE              -> 0000 (0)
@@ -195,43 +195,43 @@ ON_DEALLOCATION   -> 0100 (4)
 ON_ALL            -> 0111 (7)
 {% endhighlight %}
 
-We're then creating two enumerations from this data: one to store the bitmask and one to store the thrashing value. And both enumerations come from the same data we shown in the macro. Let's define them as:
+We're then creating two enumerations from this data: one to store the bitmask and one to store the trashing value. And both enumerations come from the same data we shown in the macro. Let's define them as:
 
 {% highlight c++ %}
-enum class eThrashing
+enum class eTrashing
 {
 #define TO(ID, MASK, HEX_VALUE) ID = MASK,
-    MemoryManagerThrashingOptions
+    MemoryManagerTrashingOptions
 #undef TO
 };
 
-enum class eThrashingValue
+enum class eTrashingValue
 {
 #define TO(ID, MASK, HEX_VALUE) ID = HEX_VALUE,
-    MemoryManagerThrashingOptions
+    MemoryManagerTrashingOptions
 #undef TO
 };
 {% endhighlight %}
 
-Now we can modify our constructor to receive the thrashing mask, so we can have different configurations:
+Now we can modify our constructor to receive the trashing mask, so we can have different configurations:
 
 {% highlight c++ %}
-cMemoryManager(unsigned int bytes, eThrashing thrashing = eThrashing::ON_ALL);
+cMemoryManager(unsigned int bytes, eTrashing trashing = eTrashing::ON_ALL);
 {% endhighlight %}
 
 And finally, we can apply it! Let's modify our constructor to check for this mask and apply the correct value:
 
 {% highlight c++ %}
-cMemoryManager::cMemoryManager(unsigned int bytes, eThrashing thrashing) :
+cMemoryManager::cMemoryManager(unsigned int bytes, eTrashing trashing) :
     m_memory(nullptr),
     m_totalBytesCount(bytes),
-    m_thrashing(thrashing)
+    m_trashing(trashing)
 {
     m_memory = ::new unsigned char[bytes];
 
-    if (static_cast<int>(m_thrashing) & static_cast<int>(eThrashing::ON_INITIALIZATION))
+    if (static_cast<int>(m_trashing) & static_cast<int>(eTrashing::ON_INITIALIZATION))
     {
-        memset(m_memory, static_cast<int>(eThrashingValue::ON_INITIALIZATION), m_totalBytesCount);
+        memset(m_memory, static_cast<int>(eTrashingValue::ON_INITIALIZATION), m_totalBytesCount);
     }
 }
 {% endhighlight %}
@@ -240,9 +240,9 @@ Yeah, I know what you're thinking right now. _What on Earth are all those `stati
 
 Well, we've used `enum class` to define the enumerations to have type safe values, but with it we've lost the implicit conversion to `int` (and that's a good thing!). However, since we're working with these typed values as a bitmask, we need to be able to use the `&` operator to check whether the flag is set and that operator isn't defined for enumerations.
 
-Note that we've stored the mask for all of the thrashing we're performing in `m_thrashing`. Whenever we want to check if we have to apply thrashing, we check it against the `eThrashing` enumeration and then use the value in the `eThrashingValue` enumeration.
+Note that we've stored the mask for all of the trashing we're performing in `m_trashing`. Whenever we want to check if we have to apply trashing, we check it against the `eTrashing` enumeration and then use the value in the `eTrashingValue` enumeration.
 
-### Testing thrashing
+### Testing trashing
 
 Okay! Let's give it some runs!
 
@@ -316,18 +316,18 @@ Where `Class` is the class you want to build, `pointer` is a pointer to some wri
 With this in mind, we just need to build our first chunk in our memory! Let's add it to our constructor so it looks like:
 
 {% highlight c++ %}
-cMemoryManager::cMemoryManager(unsigned int bytes, eThrashing thrashing) :
+cMemoryManager::cMemoryManager(unsigned int bytes, eTrashing trashing) :
     m_memory(nullptr),
     m_freeBytesCount(bytes - sizeof(cMemoryChunk)),
     m_totalBytesCount(bytes),
-    m_thrashing(thrashing)
+    m_trashing(trashing)
 {
     m_memory = ::new unsigned char[bytes];
 
-    // optional thrashing
-    if (static_cast<int>(m_thrashing) & static_cast<int>(eThrashing::ON_INITIALIZATION))
+    // optional trashing
+    if (static_cast<int>(m_trashing) & static_cast<int>(eTrashing::ON_INITIALIZATION))
     {
-        memset(m_memory, static_cast<int>(eThrashingValue::ON_INITIALIZATION), m_totalBytesCount);
+        memset(m_memory, static_cast<int>(eTrashingValue::ON_INITIALIZATION), m_totalBytesCount);
     }
 
     // first chunk
