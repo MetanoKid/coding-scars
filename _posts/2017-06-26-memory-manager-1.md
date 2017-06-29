@@ -19,7 +19,7 @@ In the previous post we tried to understand the big picture of what we're buildi
 
 Are you ready?
 
-## Obtaining memory
+# Obtaining memory
 
 If you recall from the previous post, the basic concept for our manager was that we'd get a big chunk of memory and we'd deal with how it is sliced.
 
@@ -58,7 +58,7 @@ cMemoryManager::~cMemoryManager()
 
 And with this, we've got the start and end of the life cycle for the memory we'll be managing! But before we continue on with the `MemoryChunk`, we need some way to know we're doing it right.
 
-## Dumping the contents
+# Dumping the contents
 
 One of the most useful tools we want to have is the ability to dump the contents of the memory we're managing in a readable format. Something similar to those awesome hexadecimal editors. We'll use the most common format: a left column with the memory address, a central column with all of the bytes with an offset from that address and a right column with an ASCII representation of each byte. Let's define a `dump` method like so:
 
@@ -242,11 +242,11 @@ Well, we've used `enum class` to define the enumerations to have type safe value
 
 Note that we've stored the mask for all of the trashing we're performing in `m_trashing`. Whenever we want to check if we have to apply trashing, we check it against the `eTrashing` enumeration and then use the value in the `eTrashingValue` enumeration.
 
-### Testing trashing
+##  Testing trashing
 
 Okay! Let's give it some runs!
 
-#### Debug x86
+### Debug x86
 
 {% highlight text %}
 011ED6E0:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
@@ -255,7 +255,7 @@ Okay! Let's give it some runs!
 011ED710:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
 {% endhighlight %}
 
-#### Release x86
+### Release x86
 
 {% highlight text %}
 00F05C78:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
@@ -264,7 +264,7 @@ Okay! Let's give it some runs!
 00F05CA8:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
 {% endhighlight %}
 
-#### Debug x64
+### Debug x64
 
 {% highlight text %}
 000001E4A4F67100:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
@@ -273,7 +273,7 @@ Okay! Let's give it some runs!
 000001E4A4F67130:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
 {% endhighlight %}
 
-#### Release x64
+### Release x64
 
 {% highlight text %}
 000001805267E6B0:  CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD:CD  ................
