@@ -14,9 +14,9 @@ series: Memory Management in C++
 
 _Gather around the fire, for I'm about to tell you a short tale about Learning_.
 
-Some time ago I was rolling my own take on some of the containers of the C++'s STL. They were simplified versions of the originals, just focusing on the _bare-bones_. Why did I do it? In videogames, it's common that people skip using the STL altogether and build their own versions of the containers (check [EA's STL](https://github.com/electronicarts/EASTL) for reference) because the STL's are overengineered and most of the underlying features aren't strictly necessary in that context.
+Some time ago I was rolling my own take on some of the containers of the C++'s STL. They were simplified versions of the originals, just focusing on the _bare-bones_. Why did I do it? In videogames, it's common that people skip using the STL altogether and build their own versions of the containers (check [EA's STL](https://github.com/electronicarts/EASTL){:target="_blank"} for reference) because the STL's are overengineered and most of the underlying features aren't strictly necessary in that context.
 
-When I was building the very first one (a [Singly Linked List](https://en.wikipedia.org/wiki/Linked_list)), I was trying to understand the STL itself as well. I started investigating the `Allocator`, which is a parameter of the containers defined in the STL. This `Allocator` is a class that deals with how dynamic memory requirements are fulfilled (i.e. used when creating new nodes in a list). So, of course, I wanted to mimic this behavior.
+When I was building the very first one (a [Singly Linked List](https://en.wikipedia.org/wiki/Linked_list){:target="_blank"}), I was trying to understand the STL itself as well. I started investigating the `Allocator`, which is a parameter of the containers defined in the STL. This `Allocator` is a class that deals with how dynamic memory requirements are fulfilled (i.e. used when creating new nodes in a list). So, of course, I wanted to mimic this behavior.
 
 I went on and created a _copy_ of the default `Allocator`: it forwarded memory requests to `new` and `delete`. Not bad, as I could create other allocators that obtained that dynamic memory from other source instead of asking for it to the OS directly.
 
@@ -28,10 +28,10 @@ In C++, each time you need dynamic memory you use `new` (`malloc` in C), some me
 
 ~~While doing that, you are in fact calling the OS. It is, in turn, switching contexts between your application and the kernel to fulfill your requests. And that's each time you call `new` and `delete`! We're talking about tiny fractions of a second on each context switch, but they will stack if you are performing them continuously.~~
 
-**Edit**: thanks to [@FlohOfWoe](https://twitter.com/FlohOfWoe) and [@dcanadasm](https://twitter.com/dcanadasm) for pointing out that not all calls to `new` and `malloc` result in a call to the OS.
+**Edit**: thanks to [@FlohOfWoe](https://twitter.com/FlohOfWoe){:target="_blank"} and [@dcanadasm](https://twitter.com/dcanadasm){:target="_blank"} for pointing out that not all calls to `new` and `malloc` result in a call to the OS.
 
 Long story short, `new` and `malloc` are runtime library calls that perform some memory management under the hood, somewhat similarly to what we're trying to achieve with our manager. They might need to perform a call to the low-level API (still not OS) to obtain the memory the user requested. In case it is out of memory, it will perform a call to the OS and retrieve a full memory page (bigger than the memory that was requested). Then, this memory page is sliced into smaller chunks and managed by the runtime library. The idea is to minimize context switches, that are considered slow.  
-Check [this answer on StackOverflow](https://stackoverflow.com/a/5716525/1257656) for more info.
+Check [this answer on StackOverflow](https://stackoverflow.com/a/5716525/1257656){:target="_blank"} for more info.
 
 Back on track, this concept might not seem like a big deal for the majority of the programs. However, some high-performant ones do require memory management to be consistent: you don't want to have a sudden hiccup because your allocation required an OS call. Videogames are one of this kind of programs, and these OS calls can be specially slow in consoles or other devices than computers.
 
@@ -141,7 +141,7 @@ struct cMemoryChunk
 };
 {% endhighlight %}
 
-Each of these `MemoryChunk` instances is part of a chain of chunks. In fact, it stores a couple of pointers to the previous and next chunks in the chain. You might have noticed it looks like a [Doubly Linked List](https://en.wikipedia.org/wiki/Doubly_linked_list). And you're right. The `MemoryManager` would, then, have some kind of reference to the _head_ of the list of chunks. We'll see how, but it's not via a `MemoryChunk *` as you might have thought!
+Each of these `MemoryChunk` instances is part of a chain of chunks. In fact, it stores a couple of pointers to the previous and next chunks in the chain. You might have noticed it looks like a [Doubly Linked List](https://en.wikipedia.org/wiki/Doubly_linked_list){:target="_blank"}. And you're right. The `MemoryManager` would, then, have some kind of reference to the _head_ of the list of chunks. We'll see how, but it's not via a `MemoryChunk *` as you might have thought!
 
 One caveat: although the user requests memory in the form of a `void *` (check the API we defined), we're building `MemoryChunk` instances internally. That means we're using the `MemoryChunk` as kind of a _container_ of the memory the user requests, storing internal data for the manager and returning to the user the memory that is _contained_ in the chunk. It sure sounds complex, but we'll go through it, don't fear.
 
