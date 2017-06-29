@@ -11,9 +11,9 @@ tags:
   - Gang of Four
 ---
 
-In this _coding scar_ we'll talk about one of the Gang of Four's object-oriented patterns: the [State pattern](https://en.wikipedia.org/wiki/State_pattern).
+In this _coding scar_ we'll talk about one of the Gang of Four's object-oriented patterns: the [State pattern](https://en.wikipedia.org/wiki/State_pattern){:target="_blank"}.
 
-You are programming a [RTS](https://en.wikipedia.org/wiki/Real-time_strategy) videogame with some AIs. One of those is a basic unit: the harvester. You decide to find _inspiration_ in other videogames, and you come across StarCraft.
+You are programming a [RTS](https://en.wikipedia.org/wiki/Real-time_strategy){:target="_blank"} videogame with some AIs. One of those is a basic unit: the harvester. You decide to find _inspiration_ in other videogames, and you come across StarCraft.
 
 # StarCraft's harvester
 
@@ -653,7 +653,7 @@ Maybe some of them keep a timer to check for timeouts, or keep request/response 
 
 Have you ever thought about user navigation between menus? User is presented with the main one, then interacts to go to some other menu. Yes, those are `States` as well! Each one manages its logic and has its own properties, so it fits our pattern.
 
-But, what about going back to the previous menu? You could have a hardcoded graph of which menu is the _previous_ of another one. Or you could have a [Pushdown Automaton](https://en.wikipedia.org/wiki/Pushdown_automaton)!
+But, what about going back to the previous menu? You could have a hardcoded graph of which menu is the _previous_ of another one. Or you could have a [Pushdown Automaton](https://en.wikipedia.org/wiki/Pushdown_automaton){:target="_blank"}!
 
 In a nutshell, it has a stack of `States` so you _push_ one when you enter a new menu and then _pop_ it when you exit it and you are again in the previous one. But that's for a future _coding scar_, don't rush it :)
 
