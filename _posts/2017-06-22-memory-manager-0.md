@@ -129,7 +129,7 @@ One of the requirements we set ourselves was that the memory we manage is finite
 
 With all that in mind, we can think of our system as:
 
-![image-center]({{ site.baseurl }}/assets/images/per-post/memory-manager-0/memory-manager-design.png){: .align-center}
+![Memory Manager design diagram]({{ site.baseurl }}/assets/images/per-post/memory-manager-0/memory-manager-design.png){: .align-center}
 
 By drawing this picture we've discovered a new class for our system: the `MemoryChunk`. And we've also found some of the data it needs to have:
 
