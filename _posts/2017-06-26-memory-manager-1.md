@@ -150,7 +150,7 @@ Offset    +00:01:02:03:04:05:06:07:08:09:0A:0B:0C:0D:0E:0F
 
 That's better!
 
-As you can see, the memory is magically initialized to the `0xCD` value. That's because of the _kind_ MSVC in a Debug build. As we mentioned before, the `.` is used whenever the character doesn't have a string representation. MSVC uses the `0xCD` value to indicate it's clean memory, allocated and initialized. If you want to know what other common _magic numbers_ mean, check [this Wikipedia article](https://en.wikipedia.org/wiki/Magic_number_(programming)){:target="_blank"}.
+As you can see, the memory is magically initialized to the `0xCD` value. That's because of the _kind_ MSVC in a Debug build. As we mentioned before, the `.` is used whenever the character doesn't have a string representation. MSVC uses the `0xCD` value to indicate it's clean memory, allocated and initialized. If you want to know what other common _magic numbers_ mean, check [this Wikipedia article](https://en.wikipedia.org/wiki/Magic_number_(programming)){:target="_blank"} (thanks for the link, [@dcanadasm](https://twitter.com/dcanadasm){:target="_blank"}!).
 
 What happens if we use Visual Studio with the **Release x86** configuration?
 
