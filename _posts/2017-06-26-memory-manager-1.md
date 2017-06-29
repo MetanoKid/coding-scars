@@ -150,7 +150,7 @@ Offset    +00:01:02:03:04:05:06:07:08:09:0A:0B:0C:0D:0E:0F
 
 That's better!
 
-As you can see, the memory is magically initialized to the `0xCD` value. That's because of the _kind_ MSVC in a Debug build. As we mentioned before, the `.` is used whenever the character doesn't have a string representation. MSVC uses the `0xCD` value to indicate it's clean memory, allocated and initialized.
+As you can see, the memory is magically initialized to the `0xCD` value. That's because of the _kind_ MSVC in a Debug build. As we mentioned before, the `.` is used whenever the character doesn't have a string representation. MSVC uses the `0xCD` value to indicate it's clean memory, allocated and initialized. If you want to know what other common _magic numbers_ mean, check [this Wikipedia article](https://en.wikipedia.org/wiki/Magic_number_(programming)){:target="_blank"}.
 
 What happens if we use Visual Studio with the **Release x86** configuration?
 
@@ -172,7 +172,7 @@ And regularly test Release builds!
 
 Now that we've seen the difference between Debug and Release builds, another useful tool we'd like to have is a way of initializing memory for the different scenarios we'll come up with (memory we've just initialized, memory that was allocated in a chunk, memory that was returned to the manager, ...).
 
-Let's make use of the knowledge we gained with the [X-Macros]({{ site.baseurl }}{% post_url 2017-05-05-x-macros %}) post (because, why not?) and define it as:
+Let's make use of the knowledge we gained with the [X-Macros]({{ site.baseurl }}{% post_url 2017-05-05-x-macros %}){:target="_blank"} post (because, why not?) and define it as:
 
 {% highlight c++ %}
 #define MemoryManagerTrashingOptions \
@@ -375,7 +375,7 @@ What else can we learn from the first row of the dumped memory? Let's have a loo
 
 As we can see, there's some memory left unchanged with the `0xCD` value: the one used to pad members. `0x00 == 0`, which is our `false` value for the `m_isInUse` member. `0x30 == 48`, which is the correct number of free bytes we have in our memory (remember we have a total of 64 bytes and the chunk is 16 bytes). Both `m_previous` and `m_next` point to `nullptr`, which is `0x0000000`.
 
-Finally, there's something else worth mentioning about the dump: the machine it was executed uses [little endian](https://en.wikipedia.org/wiki/Endianness) ordering. If we were to represent `48` in hexadecimal with 4 bytes we'd use `0x0000030`. However, we can see it's stored as `30:00:00:00`! In little endian architectures, the least significant byte is written first and the most significant one is written last. That's why we see it _flipped_ in memory.
+Finally, there's something else worth mentioning about the dump: the machine it was executed uses [little endian](https://en.wikipedia.org/wiki/Endianness){:target="_blank"} ordering. If we were to represent `48` in hexadecimal with 4 bytes we'd use `0x0000030`. However, we can see it's stored as `30:00:00:00`! In little endian architectures, the least significant byte is written first and the most significant one is written last. That's why we see it _flipped_ in memory.
 
 I guess that's all for this entry in the series! I hope you're enjoying it! In the next post we'll start manipulating the chunks in our memory.
 
