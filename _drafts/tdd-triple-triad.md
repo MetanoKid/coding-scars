@@ -104,7 +104,7 @@ So that's the first thing we'll build.
 Let's start by creating this test specification:
 
 {% highlight scala %}
-class BoardSpec extends FlatSpec with Matchers {
+class DefaultBoardSpec extends FlatSpec with Matchers {
   behavior of "A Board"
   
   it should "start empty" in {
@@ -115,7 +115,7 @@ class BoardSpec extends FlatSpec with Matchers {
 
 Doesn't it read like an open book? That's the magic of ScalaTest's `FlatSpec` and `Matchers`! Let's go through the test explaining what's going on.
 
-First of all we've got the definition of our `BoardSpec`, which is a testing unit for our `Board`.  
+First of all we've got the definition of our `DefaultBoardSpec`, which is a testing unit for our `Board`.  
 The `behavior of "A Board"` line defines a _title_ for all of the tests; it's just like a name for our testing unit.  
 Each `it should "..." in` line will define a test in our unit, so we can check individual features.  
 
@@ -140,7 +140,7 @@ sbt test
 This is the output:
 
 {% highlight text %}
-[info] BoardSpec:
+[info] DefaultBoardSpec:
 [info] A Board
 [info] - should start empty *** FAILED ***
 [info]   scala.NotImplementedError: an implementation is missing
@@ -167,7 +167,7 @@ case class Board() {
 And now let's ensure this code makes the test pass. Now, the output is:
 
 {% highlight text %}
-[info] BoardSpec:
+[info] DefaultBoardSpec:
 [info] A Board
 [info] - should start empty
 [info] Run completed in 284 milliseconds.
@@ -181,11 +181,80 @@ Awesome! It passes!
 
 #### TDD checklist: refactor code
 
-In this simple scenario we don't need to perform any refactoring, so we're done with this feature. Let's move onto the next one!
+Let's make use of a Scala's [companion object](http://docs.scala-lang.org/tutorials/tour/singleton-objects.html){:target="_blank"} to define a `Default` `Board`, like so:
+
+{% highlight scala %}
+object Board {
+  val Default = Board()
+}
+{% endhighlight %}
+
+So now we can use `Board.Default` to always refer to the same instance with the default configuration. We can now rewrite our test as:
+
+{% highlight scala %}
+behavior of "A Default Board"
+
+it should "start empty" in {
+  Board.Default.isEmpty should be (true)
+}
+{% endhighlight %}
 
 ### Board as a square grid
 
-Okay, now that we've seen how we define our `Board` we'll model it as a square grid. Let's
+Okay, now that we've seen how we define our `Board` we'll model it as a 3x3 square grid. This time I won't be listing all the steps in the TDD checklist and may skip some of them.
+
+Here are our tests:
+
+{% highlight scala %}
+it should "have 3 rows" in {
+  Board.default.rows should be (3)
+}
+
+it should "have 3 columns" in {
+  Board.default.columns should be (3)
+}
+
+it should "have 9 Cells" in {
+  Board.default.cellCount should be (9)
+}
+{% endhighlight %}
+
+Let's model our `Board` to have a `List[Cell]` to model the grid. And what's a `Cell`, you say? For now, it's just:
+
+{% highlight scala %}
+case class Cell()
+{% endhighlight %}
+
+Now we can update our `Board` definition to be:
+
+{% highlight scala %}
+object Board {
+  val Default = Board(3, 3)
+}
+
+case class Board(rows: Int, columns: Int) {
+  private val cells: List[Cell] = List.fill(rows * columns)(Cell())
+  
+  lazy val cellCount: Int = cells.size
+  def isEmpty: Boolean = true
+}
+{% endhighlight %}
+
+Which makes all tests pass:
+
+{% highlight text %}
+[info] DefaultBoardSpec:
+[info] A Default Board
+[info] - should start empty
+[info] - should have 3 rows
+[info] - should have 3 columns
+[info] - should have 9 Cells
+[info] Run completed in 340 milliseconds.
+[info] Total number of tests run: 4
+[info] Suites: completed 1, aborted 0
+[info] Tests: succeeded 4, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+{% endhighlight %}
 
 ### Empty Cells
 
@@ -193,144 +262,85 @@ The next item in our rules list is:
 
   * All `Cells` in the grid start empty.
 
-So let's do the same thing, but this time I won't be listing the steps in the TDD checklist.
+Let's start with the test:
 
 {% highlight scala %}
-class CellSpec extends FlatSpec with Matchers {
-  behavior of "A Cell"
+class DefaultCellSpec extends FlatSpec with Matchers {
+  behavior of "A Default Cell"
   
   it should "start empty" in {
-    new Cell().isEmpty should be (true)
+    Cell.Default.isEmpty should be (true)
   }
 }
 {% endhighlight %}
 
-As you can see, we've created a separate testing unit for our `Cell`. Apart from that, it's basically analogous to the `Board`'s. Now, it must compile.
+As you can see, we've created a separate testing unit for our `Cell`. Apart from that, it's basically analogous to the `DefaultBoardSpec`. Now, it must compile.
 
 {% highlight scala %}
-class Cell {
-  def isEmpty = ???
+object Cell {
+  val Default = Cell() 
+}
+
+case class Cell() {
+  def isEmpty: Boolean = ???
 }
 {% endhighlight %}
 
 Does it fail?
 
 {% highlight text %}
-[info] BoardSpec:
-[info] A Board
-[info] - should start empty
-[info] CellSpec:
-[info] A Cell
+[info] DefaultCellSpec:
+[info] A Default Cell
 [info] - should start empty *** FAILED ***
 [info]   scala.NotImplementedError: an implementation is missing
 [info]   ...
-[info] Run completed in 961 milliseconds.
-[info] Total number of tests run: 2
-[info] Suites: completed 2, aborted 0
-[info] Tests: succeeded 1, failed 1, canceled 0, ignored 0, pending 0
+[info] DefaultBoardSpec:
+[info] A Default Board
+[info] - should start empty
+[info] - should have 3 rows
+[info] - should have 3 columns
+[info] - should have 9 Cells
+[info] Run completed in 541 milliseconds.
+[info] Total number of tests run: 5
+[info] Suites: completed 3, aborted 0
+[info] Tests: succeeded 4, failed 1, canceled 0, ignored 0, pending 0
 [info] *** 1 TEST FAILED ***
 {% endhighlight %}
 
 Yes, it does. Can we fix it?
 
 {% highlight scala %}
-class Cell {
+case class Cell() {
   def isEmpty: Boolean = true
 }
 {% endhighlight %}
 
 {% highlight text %}
-[info] CellSpec:
-[info] A Cell
+[info] DefaultCellSpec:
+[info] A Default Cell
 [info] - should start empty
-[info] BoardSpec:
-[info] A Board
+[info] DefaultBoardSpec:
+[info] A Default Board
 [info] - should start empty
-[info] Run completed in 331 milliseconds.
-[info] Total number of tests run: 2
-[info] Suites: completed 2, aborted 0
-[info] Tests: succeeded 2, failed 0, canceled 0, ignored 0, pending 0
+[info] - should have 3 rows
+[info] - should have 3 columns
+[info] - should have 9 Cells
+[info] Run completed in 529 milliseconds.
+[info] Total number of tests run: 5
+[info] Suites: completed 3, aborted 0
+[info] Tests: succeeded 5, failed 0, canceled 0, ignored 0, pending 0
 [info] All tests passed.
 {% endhighlight %}
 
-Yes, we can! Good job!
+Yes, we did it! Great job! Now, for the refactor.
 
-### Colored Cells
-
-Next item in the list:
-
-  * Each `Cell` has a `Color`.
-
-Let's create the test:
+Have you noticed we've defined `Board.isEmpty` and `Cell.isEmpty` but they aren't related yet? We're going to do it now. Let's rewrite `Board.isEmpty` as:
 
 {% highlight scala %}
-it should "be Neutral by default" in {
-  new Cell().color should be (Neutral)
-}
+def isEmpty: Boolean = cells.forall(_.isEmpty)
 {% endhighlight %}
 
-To make it compile, let's first model the `Color` itself. We're not going to allow user-defined colors via hexadecimal values or anything fancy. Instead, we'll define them ourselves (we know they will be `Red` and `Blue` because we've seen the rules):
-
-{% highlight scala %}
-sealed trait Color
-
-case object Neutral extends Color
-case object Red     extends Color
-case object Blue    extends Color
-{% endhighlight %}
-
-And now we update `Cell` to have a `Color`:
-
-{% highlight scala %}
-class Cell(val color: Color = ???) {
-  def isEmpty: Boolean = true
-}
-{% endhighlight %}
-
-Running the tests will make more than one fail! That's okay, because we're adding new functionality that affects other tests. Let's first fix the previous test so only this new one fails:
-
-{% highlight scala %}
-it should "start empty" in {
-  new Cell(Neutral).isEmpty should be (true)
-}
-{% endhighlight %}
-
-{% highlight text %}
-[info] BoardSpec:
-[info] A Board
-[info] - should start empty
-[info] CellSpec:
-[info] A Cell
-[info] - should start empty
-[info] - should be Neutral by default *** FAILED ***
-[info]   scala.NotImplementedError: an implementation is missing
-[info]   ...
-[info] Run completed in 376 milliseconds.
-[info] Total number of tests run: 3
-[info] Suites: completed 2, aborted 0
-[info] Tests: succeeded 2, failed 1, canceled 0, ignored 0, pending 0
-[info] *** 1 TEST FAILED ***
-{% endhighlight %}
-
-Okay, so an empty `Cell` doesn't hold any `Card`, so there's no meaningful `Color` assigned. Let's say the default value will be `Neutral`:
-
-{% highlight scala %}
-class Cell(val color: Color = Neutral) {
-  def isEmpty: Boolean = true
-}
-{% endhighlight %}
-
-So now all tests pass!
-
-Refactor time! This time we do have some code to refactor: the `Neutral` we added to the first test isn't necessary anymore, because we're using the default `Cell` definition in that test. Let's rewrite it back to:
-
-{% highlight scala %}
-it should "start empty" in {
-  new Cell().isEmpty should be (true)
-}
-{% endhighlight %}
-
-Tests keep passing after the refactor!
+All tests pass with this refactor, so we're very happy!
 
 -------------------------
 
