@@ -10,7 +10,7 @@
 					{% if post == page %}
 						{{ series_entry_title }}
 					{% else %}
-						<a href="{{ site.baseurl }}/{{ post.url | slugify }}">{{ series_entry_title }}</a>
+						<a href="{{ '/' | absolute_url }}{{ post.url | slugify }}">{{ series_entry_title }}</a>
 					{% endif %}
 				</li>
 			{% endif %}
