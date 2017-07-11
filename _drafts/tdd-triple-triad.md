@@ -42,7 +42,7 @@ Let's be honest: I don't mind what TDD or BDD is, or what you should use. I just
 
 Back in 1999 a very remarkable videogame was released for the PlayStation: Final Fantasy VIII. I could describe the game or talk about why I like it so much, but it might take some more time than the one we have for this post!
 
-As a part of the videogame there was a card game called _Triple Triad_. It had relatively simple rules ([described here](http://finalfantasy.wikia.com/wiki/Triple_Triad){:target="_blank"}) but you could spend hours playing it! The main reason to do so was to earn cards from your opponents and then mod them into items (some of them, unique to this system).
+In the videogame there was a card game called _Triple Triad_. It had relatively simple rules ([described here](http://finalfantasy.wikia.com/wiki/Triple_Triad){:target="_blank"}) but you could spend hours playing it! The main reason to do so was to earn cards from your opponents and then mod them into items (some of those were unique to this system).
 
 We'll try to build the logic for this card game in Scala using TDD/BDD.
 
@@ -81,22 +81,25 @@ Take a look at the screenshot again. You can see there are two players: red and 
 
 So, now that we mostly know how the system works, let's start creating the logic in a TDD/BDD way!
 
-# Language and libraries
+## Language and libraries
 
-This time, we'll be using Scala to illustrate the concepts in this post. It's JVM-based language that mixes Object-Oriented Programming and Functional Programming in a very nice way. I'm not a professional Scala developer (not even close!) but I like its readability and the benefits of being _immutable-by-default_. If you want to follow along, head to [the official Scala site](https://www.scala-lang.org/) to learn how to set it up on your computer.
+This time, we'll be using Scala to illustrate the concepts in this post. It's is a JVM-based language that mixes Object-Oriented Programming and Functional Programming in a very nice way. I'm not a professional Scala developer (not even close!) but I like its readability and the benefits of being _immutable-by-default_. If you want to follow along, head to [the official Scala site](https://www.scala-lang.org/){:target="_blank"} to learn how to set it up on your computer.
 
-We'll be using [ScalaTest](http://www.scalatest.org/install) to help us with our TDD/BDD implementation, so you should also go to its site to know how to configure it in case you're following along.
+We'll be using [ScalaTest](http://www.scalatest.org/install){:target="_blank"} to help us with our TDD/BDD implementation, so you should also go to its site to know how to configure it in case you're following along. Also, you can read [this interesting post](https://semaphoreci.com/community/tutorials/a-hands-on-introduction-to-scalatest){:target="_blank"} on how to use ScalaTest more in depth than we'll do.
 
-## First functionality: an empty Board
+## Game logic
 
-Let's take a look back at the feature list. The first two ones were:
+So, let's go item by item through the list of rules.
+
+### An empty Board
+
+Let's take a look back at the feature list. It started as:
 
   * The `Board` is a 3x3 square grid.
-  * All `Cells` in the grid start empty.
 
-So those are the first things we'll build.
+So that's the first thing we'll build.
 
-### TDD checklist: create a test, make it run
+#### TDD checklist: create a test, make it run
 
 Let's start by creating this test specification:
 
@@ -105,28 +108,28 @@ class BoardSpec extends FlatSpec with Matchers {
   behavior of "A Board"
   
   it should "start empty" in {
-    new Board().isEmpty should be (true)
+    Board().isEmpty should be (true)
   }
 }
 {% endhighlight %}
 
-Wow, doesn't it read like an open book? That's the magic of ScalaTest's `FlatSpec` and its `Matchers`! Let's go through the test explaining what's going on.
+Doesn't it read like an open book? That's the magic of ScalaTest's `FlatSpec` and `Matchers`! Let's go through the test explaining what's going on.
 
 First of all we've got the definition of our `BoardSpec`, which is a testing unit for our `Board`.  
 The `behavior of "A Board"` line defines a _title_ for all of the tests; it's just like a name for our testing unit.  
-Each `it should "..." in` line will define a test in our unit, so we can test individual features.  
+Each `it should "..." in` line will define a test in our unit, so we can check individual features.  
 
 If we were to run this code, it wouldn't compile. What's a `Board`? If we remember the TDD checklist we mentioned before, we now have to make the test compile with the minimal needed code.
 
 {% highlight scala %}
-class Board {
+case class Board() {
   def isEmpty: Boolean = ???
 }
 {% endhighlight %}
 
 Now it compiles. And what's `???`, you ask? It's a method accessible from all compilation units in Scala that just throws a `NotImplementedError` exception when invoked. It's very useful to stub methods like this!
 
-### TDD checklist: ensure new test fails
+#### TDD checklist: ensure new test fails
 
 Let's test it, then!
 
@@ -151,12 +154,12 @@ This is the output:
 
 Sure enough, it fails! We're on the right track. What's next?
 
-### TDD checklist: make it pass, minimum code
+#### TDD checklist: make it pass, minimum code
 
 Alright, let's update our `isEmpty` method so it makes the test pass:
 
 {% highlight scala %}
-class Board {
+case class Board() {
   def isEmpty: Boolean = true
 }
 {% endhighlight %}
@@ -175,3 +178,168 @@ And now let's ensure this code makes the test pass. Now, the output is:
 {% endhighlight %}
 
 Awesome! It passes!
+
+#### TDD checklist: refactor code
+
+In this simple scenario we don't need to perform any refactoring, so we're done with this feature. Let's move onto the next one!
+
+### Board as a square grid
+
+Okay, now that we've seen how we define our `Board` we'll model it as a square grid. Let's
+
+### Empty Cells
+
+The next item in our rules list is:
+
+  * All `Cells` in the grid start empty.
+
+So let's do the same thing, but this time I won't be listing the steps in the TDD checklist.
+
+{% highlight scala %}
+class CellSpec extends FlatSpec with Matchers {
+  behavior of "A Cell"
+  
+  it should "start empty" in {
+    new Cell().isEmpty should be (true)
+  }
+}
+{% endhighlight %}
+
+As you can see, we've created a separate testing unit for our `Cell`. Apart from that, it's basically analogous to the `Board`'s. Now, it must compile.
+
+{% highlight scala %}
+class Cell {
+  def isEmpty = ???
+}
+{% endhighlight %}
+
+Does it fail?
+
+{% highlight text %}
+[info] BoardSpec:
+[info] A Board
+[info] - should start empty
+[info] CellSpec:
+[info] A Cell
+[info] - should start empty *** FAILED ***
+[info]   scala.NotImplementedError: an implementation is missing
+[info]   ...
+[info] Run completed in 961 milliseconds.
+[info] Total number of tests run: 2
+[info] Suites: completed 2, aborted 0
+[info] Tests: succeeded 1, failed 1, canceled 0, ignored 0, pending 0
+[info] *** 1 TEST FAILED ***
+{% endhighlight %}
+
+Yes, it does. Can we fix it?
+
+{% highlight scala %}
+class Cell {
+  def isEmpty: Boolean = true
+}
+{% endhighlight %}
+
+{% highlight text %}
+[info] CellSpec:
+[info] A Cell
+[info] - should start empty
+[info] BoardSpec:
+[info] A Board
+[info] - should start empty
+[info] Run completed in 331 milliseconds.
+[info] Total number of tests run: 2
+[info] Suites: completed 2, aborted 0
+[info] Tests: succeeded 2, failed 0, canceled 0, ignored 0, pending 0
+[info] All tests passed.
+{% endhighlight %}
+
+Yes, we can! Good job!
+
+### Colored Cells
+
+Next item in the list:
+
+  * Each `Cell` has a `Color`.
+
+Let's create the test:
+
+{% highlight scala %}
+it should "be Neutral by default" in {
+  new Cell().color should be (Neutral)
+}
+{% endhighlight %}
+
+To make it compile, let's first model the `Color` itself. We're not going to allow user-defined colors via hexadecimal values or anything fancy. Instead, we'll define them ourselves (we know they will be `Red` and `Blue` because we've seen the rules):
+
+{% highlight scala %}
+sealed trait Color
+
+case object Neutral extends Color
+case object Red     extends Color
+case object Blue    extends Color
+{% endhighlight %}
+
+And now we update `Cell` to have a `Color`:
+
+{% highlight scala %}
+class Cell(val color: Color = ???) {
+  def isEmpty: Boolean = true
+}
+{% endhighlight %}
+
+Running the tests will make more than one fail! That's okay, because we're adding new functionality that affects other tests. Let's first fix the previous test so only this new one fails:
+
+{% highlight scala %}
+it should "start empty" in {
+  new Cell(Neutral).isEmpty should be (true)
+}
+{% endhighlight %}
+
+{% highlight text %}
+[info] BoardSpec:
+[info] A Board
+[info] - should start empty
+[info] CellSpec:
+[info] A Cell
+[info] - should start empty
+[info] - should be Neutral by default *** FAILED ***
+[info]   scala.NotImplementedError: an implementation is missing
+[info]   ...
+[info] Run completed in 376 milliseconds.
+[info] Total number of tests run: 3
+[info] Suites: completed 2, aborted 0
+[info] Tests: succeeded 2, failed 1, canceled 0, ignored 0, pending 0
+[info] *** 1 TEST FAILED ***
+{% endhighlight %}
+
+Okay, so an empty `Cell` doesn't hold any `Card`, so there's no meaningful `Color` assigned. Let's say the default value will be `Neutral`:
+
+{% highlight scala %}
+class Cell(val color: Color = Neutral) {
+  def isEmpty: Boolean = true
+}
+{% endhighlight %}
+
+So now all tests pass!
+
+Refactor time! This time we do have some code to refactor: the `Neutral` we added to the first test isn't necessary anymore, because we're using the default `Cell` definition in that test. Let's rewrite it back to:
+
+{% highlight scala %}
+it should "start empty" in {
+  new Cell().isEmpty should be (true)
+}
+{% endhighlight %}
+
+Tests keep passing after the refactor!
+
+-------------------------
+
+You're getting the glimpse of TDD, aren't you? :)
+
+I know you're thinking: _I like the concept, but it looks so cumbersome to create a simple feature_. That's mostly because we've been illustrating the concept behind it step by step with very simple features that wouldn't require this whole process most of the times.
+
+Still, having these tests will prove helpful in the future even if we didn't follow the whole TDD checklist for each one of them.
+
+In the next post we'll continue building the logic of Triple Triad but we'll reduce the explanation to implement each feature to the test and then the code that makes it pass.
+
+Thanks for reading!
