@@ -339,10 +339,16 @@ case class Cell() {
 
 Yes, we did it! Great job! Now, for the refactor.
 
-Have you noticed we've defined `Board.isEmpty` and `Cell.isEmpty` but they aren't related yet? We're going to do it now. Let's rewrite `Board.isEmpty` as:
+Have you noticed we've defined `Board.isEmpty` and `Cell.isEmpty` but they aren't related yet? We're going to do it now. Let's refactor `Board.isEmpty` as:
 
 {% highlight scala %}
 def isEmpty: Boolean = cells.forall(_.isEmpty)
+{% endhighlight %}
+
+Oh, and now that we've got `Cell.Default`, let's also refactor `Board.cells` as:
+
+{% highlight scala %}
+private val cells: List[Cell] = List.fill(rows * columns)(Cell.Default)
 {% endhighlight %}
 
 All tests pass with this refactor, so we're very happy!
