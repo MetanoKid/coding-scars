@@ -9,6 +9,8 @@ tags:
   - Testing
   - Test-Driven Development
   - Behavior-Driven Development
+  - Scala
+  - ScalaTest
 series: TDD/BDD by example
 ---
 
