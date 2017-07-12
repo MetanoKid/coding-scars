@@ -1,14 +1,15 @@
 ---
 layout: single
-title: "TDD/BDD by example: FFVIII's Triple Triad"
-excerpt: Let's learn how TDD works by building the logic behind FFVIII's Triple Triad card game
+title: "TDD/BDD by example: the basics"
+excerpt: Let's learn the philosophy behind TDD using FFVIII's Triple Triad card game as an example
 author: Meta
-category:
+category: Computer Science
 tags:
   - Videogames development
   - Testing
   - Test-Driven Development
   - Behavior-Driven Development
+series: TDD/BDD by example
 ---
 
 You know what? Testing your software with one command is **awesome**. Being able to run a set of tests that can tell you whether you've broken some functionality while you were updating your systems is a great tool. The sooner you detect bugs, the better. Not to mention the pleasure of seeing all them pass!
@@ -37,6 +38,8 @@ Test-Driven Development (TDD) stands for the development process in which develo
 On the other hand, Behavior-Driven Development (BDD) is a methodology built on top of TDD. While TDD focuses on individual tests that check working functionalities and inputs/outputs, BDD focuses on the _behavior_ of a testing unit (a collection of tests related to one logic construct).
 
 Let's be honest: I don't mind what TDD or BDD is, or what you should use. I just want my code tested with a readable format. I'm not being picky with terminology in this post. Let's just develop some cool stuff!
+
+And by _some cool stuff_ I mean learning by example.
 
 # Triple Triad
 
