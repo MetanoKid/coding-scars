@@ -344,3 +344,5 @@ Okay, we save again and... We see this:
 ![Unexpected unexpectation]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/unexpected-unexpectation.png){: .align-center}
 
 Oh, no! What's going on?
+
+[Sublime Text docs](https://www.sublimetext.com/docs/3/syntax.html){:target="_blank"}.
