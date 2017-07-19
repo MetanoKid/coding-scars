@@ -254,14 +254,15 @@ So, now that we've captured some stuff in our file we have to add some highlight
 
 {% highlight xml %}
 <dict>
-<key>name</key>
-<string>Debug</string>
-<key>scope</key>
-<string>acsl.debug</string>
-<key>settings</key>
-<dict>
-  <key>foreground</key>
-  <string>#16ACBA</string>
+  <key>name</key>
+  <string>Debug</string>
+  <key>scope</key>
+  <string>acsl.debug</string>
+  <key>settings</key>
+  <dict>
+    <key>foreground</key>
+    <string>#16ACBA</string>
+  </dict>
 </dict>
 {% endhighlight %}
 
