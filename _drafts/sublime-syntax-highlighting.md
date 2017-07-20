@@ -228,7 +228,7 @@ This is our starting point, because we'll have a nice red background on everythi
 
 Now it's time for us to match something: the log levels. We know the format is `[log_level]` and that they are either `D` (debug), `I` (info), `W` (warning), `E` (error) or `F` (fatal).
 
-In the `.sublime-syntax` file we're going to define matches for these, so inside the `main` context but **before** the `acsl.unexpected` match (it's a cascade), insert the following code:
+In the `.sublime-syntax` file we're going to define matches for these, so inside the `main` context but **before** the `acsl.unexpected` match, insert the following code:
 
 {% highlight yaml %}
 # debug
@@ -244,7 +244,7 @@ This will yield this highlighting:
 
 ![Everything's unexpected but Debug]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/everything-is-unexpected-but-debug.png){: .align-center}
 
-Repeat this match with the rest of the tags (using `acsl.` + `info`, `warning`, ...; remember it's a cascade!) and we'll have the following highlighting:
+Repeat this match with the rest of the tags (using `acsl.` + `info`, `warning`, ...) and we'll have the following highlighting:
 
 ![Nothing is unexpected]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/nothing-is-unexpected-everything-is-unstyled.png){: .align-center}
 
@@ -328,9 +328,9 @@ And this style:
 
 We save and... Nothing changes. Why is that?
 
-Remember we said it was a cascade? The first `match` that works will stop the tests. Our matches include not only the tags before the log data but the whole line. Because of that, our new style won't ever be matched!
+When Sublime Text tries to match a new line it tests all matches in the context. Some of them may match, and they will do it at different positions. For our scenario, the `^(\[D\])(\[.+\])(\[.+\])(.+)$` pattern matches at the start of the line, while the `'([^']+)'` pattern does it somewhere in the middle of the line. Sublime Text then uses the match with the leftmost start or, in case of a draw, the first that was defined.
 
-Let's update the `debug` match to be like this:
+So, first of all, let's modify the `debug` match to be like this:
 
 {% highlight yaml %}
 # debug
@@ -338,12 +338,57 @@ Let's update the `debug` match to be like this:
   scope: acsl.debug
 {% endhighlight %}
 
-It doesn't care about anything else than the tags before the log data. Notice how we've dropped the `$` symbol and how we've ditched the `captures` list altogether: everything in the capture will have the same style.
-
-Okay, we save again and... We see this:
+This way we only match tags until the timestamp. Notice how we've dropped the `$` symbol and how we've ditched the `captures` list altogether: everything in the capture will have the same style. When Sublime Text tries to match the `'([^']+)'` pattern, this one won't trigger and it will safely work! You can modify the other captures so they have these changes. So, we save again and we see this:
 
 ![Unexpected unexpectation]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/unexpected-unexpectation.png){: .align-center}
 
-Oh, no! What's going on?
+Oh, no! Didn't we fix it?
 
-[Sublime Text docs](https://www.sublimetext.com/docs/3/syntax.html){:target="_blank"}.
+It's the same problem, but between the `.+` pattern and the `'([^']+)'` one. The former matches everywhere! In fact, if it wasn't the last one (i.e. it was before the `fatal` definition) it would be selected instead of the others!
+
+#### Enter several contexts
+
+Okay, so we know we've matched the start of each line, and those patterns will be preferred instead of the `unexpected` one because of definition order. What if we could say _Okay, this is a log line, it has these tags, and after the timestamp there's the real log data; and that is expected_? That's what we'll achieve by manipulating the context stack.
+
+Modify the `debug` match (and the other levels') to be like this:
+
+{% highlight yaml %}
+# debug
+- match: '^(\[D\])(\[.+\])(\[.+\])'
+  scope: acsl.debug
+  push: log_line
+{% endhighlight %}
+
+It says: _when you match this pattern, apply the `acsl.debug` scope to the match and then push the `log_line` context into the stack_. And where's the `log_line` context, you say?
+
+{% highlight yaml %}
+contexts:
+  log_line:
+    - match: '$'
+      pop: true
+
+  main:
+    ...
+{% endhighlight %}
+
+It's defined as an entry in the `contexts` mapping. When it's in the stack, only this context will be processed until we modify the stack. So, we need to stop using it at some point or we won't use the `main` one again!
+
+That's what the `match: '$'` does. When we get to the end of the line (because our log files are single-lined), we pop the context so we go back to the previos one (the `main` context, for us).
+
+Now, move the _single quotes_ match into the `log_line` context and remove it from the `main` one. You will have this:
+
+{% highlight %}
+log_line:
+  - match: "'([^']+)'"
+    captures:
+      1: acsl.singly-quoted
+
+  - match: '$'
+    pop: true
+{% endhighlight %}
+
+Now, we'd see this:
+
+![Colorful log file]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/colorful-log-file.png){: .align-center}
+
+Yay! Congratulations, now you know Kung-Fu! :)
