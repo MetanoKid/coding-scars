@@ -377,7 +377,7 @@ That's what the `match: '$'` does. When we get to the end of the line (because o
 
 Now, move the _single quotes_ match into the `log_line` context and remove it from the `main` one. You will have this:
 
-{% highlight %}
+{% highlight yaml %}
 log_line:
   - match: "'([^']+)'"
     captures:
@@ -392,3 +392,19 @@ Now, we'd see this:
 ![Colorful log file]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/colorful-log-file.png){: .align-center}
 
 Yay! Congratulations, now you know Kung-Fu! :)
+
+# Bonus: Sahkab dialog files
+
+Back in 2012, some friends and I started a prototype for a videogame called _Sahkab_. It was a top-down adventure set in a sci-fi universe. Because we were eager to learn, we built our custom scripting language (aimed at the programmers) and our custom dialog file format (aimed at the writer).
+
+This is a sample screenshot of one of the dialog files, properly highlighted:
+
+![Sahkab dialog file]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/sahkab-dialog.png){: .align-center}
+
+When we built it, we didn't have the highlighting, so I can tell you it was a bit _less intuitive_ to write them than we wanted :)
+
+---
+
+I hope this post motivates you to build your own syntax definitions and help your team with it!
+
+Thanks for reading!
