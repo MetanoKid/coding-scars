@@ -5,12 +5,14 @@
 		<ol class="posts-list">
 		{% for post in site.posts reversed %}
 			{% if post.series == page.series %}
-				{% capture series_entry_title %}{{ post.title | remove: title_series_prefix | capitalize }}{% endcapture %}
+				{% capture series_entry_title %}{{ post.title | remove: title_series_prefix }}{% endcapture %}
+				{% capture first_letter %}{{ series_entry_title | slice: 0 }}{% endcapture %}
+				{% capture capitalized_title %}{{ first_letter | upcase }}{{ series_entry_title | remove_first: first_letter }}{% endcapture %}
 				<li>
 					{% if post == page %}
-						{{ series_entry_title }}
+						{{ capitalized_title }}
 					{% else %}
-						<a href="{{ '/' | absolute_url }}{{ post.url | slugify }}">{{ series_entry_title }}</a>
+						<a href="{{ '/' | absolute_url }}{{ post.url | slugify }}">{{ capitalized_title }}</a>
 					{% endif %}
 				</li>
 			{% endif %}
