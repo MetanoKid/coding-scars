@@ -18,11 +18,11 @@ Have you ever thought _Oh dear, this wall of text is unreadable! If only I had s
 
 Let's say this is a screenshot of your typical log file when you open it in Sublime Text 3:
 
-![Colorless log file in Sublime Text 3]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/colorless-log-file.png){: .align-center}
+![Colorless log file in Sublime Text 3]({{ '/' | absolute_url }}/assets/images/per-post/sublime-syntax-highlighting/colorless-log-file.png){: .align-center}
 
 I'd say it is hard to get an idea of what's really going on unless you are so into the format that you can _see blonde, brunette, redhead_. What if we could improve it so we highlight some interesting parts?
 
-![Colorful log file in Sublime Text 3]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/colorful-log-file.png){: .align-center}
+![Colorful log file in Sublime Text 3]({{ '/' | absolute_url }}/assets/images/per-post/sublime-syntax-highlighting/colorful-log-file.png){: .align-center}
 
 Okay, maybe you don't like the colors or maybe you would've highlighted other stuff. We'll be learning how to achieve this result so you can roll your own!
 
@@ -218,7 +218,7 @@ Open `AwesomeCodingScarsLog.tmTheme` and add this definition in the place where 
 
 With this, now we've got this lovely file:
 
-![Everything's unexpected]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/everything-is-unexpected.png){: .align-center}
+![Everything's unexpected]({{ '/' | absolute_url }}/assets/images/per-post/sublime-syntax-highlighting/everything-is-unexpected.png){: .align-center}
 
 This is our starting point. We'll have a nice way of knowing we're missing some matchings.
 
@@ -240,11 +240,11 @@ We're capturing the `[D]` log level and the rest of the line. The `scope` proper
 
 This will yield this highlighting:
 
-![Everything's unexpected but Debug]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/everything-is-unexpected-but-debug.png){: .align-center}
+![Everything's unexpected but Debug]({{ '/' | absolute_url }}/assets/images/per-post/sublime-syntax-highlighting/everything-is-unexpected-but-debug.png){: .align-center}
 
 Repeat this match with the rest of the tags (using `acsl.` + `info`, `warning`, ...) and we'll have the following file:
 
-![Nothing is unexpected]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/nothing-is-unexpected-everything-is-unstyled.png){: .align-center}
+![Nothing is unexpected]({{ '/' | absolute_url }}/assets/images/per-post/sublime-syntax-highlighting/nothing-is-unexpected-everything-is-unstyled.png){: .align-center}
 
 Nice! Now everything in the file is expected, but there's no styling yet!
 
@@ -275,7 +275,7 @@ Do it again for each other log level with the following colors:
 
 You'll now have this style:
 
-![Styled log levels]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/styled-log-levels.png){: .align-center}
+![Styled log levels]({{ '/' | absolute_url }}/assets/images/per-post/sublime-syntax-highlighting/styled-log-levels.png){: .align-center}
 
 Great job, it's starting to take shape! What if we extend the style in the log levels to the rest of the tags before the real log line?
 
@@ -295,7 +295,7 @@ Back in the `.sublime-syntax` file, find the `debug` match and update it like so
 
 Update all other matches to account for the new `match` and `captures` additions and you'll have this highlighting:
 
-![Styled tags]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/styled-tags.png){: .align-center}
+![Styled tags]({{ '/' | absolute_url }}/assets/images/per-post/sublime-syntax-highlighting/styled-tags.png){: .align-center}
 
 Nice! Isn't it easier to see which kind of messages you're having in the file?
 
@@ -342,7 +342,7 @@ This way we only match tags until the timestamp. Notice how we've dropped the `$
 
 So, we save again and we see this:
 
-![Unexpected unexpectation]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/unexpected-unexpectation.png){: .align-center}
+![Unexpected unexpectation]({{ '/' | absolute_url }}/assets/images/per-post/sublime-syntax-highlighting/unexpected-unexpectation.png){: .align-center}
 
 Oh, no! Didn't we fix it?
 
@@ -391,7 +391,7 @@ log_line:
 
 Now, we'd see this:
 
-![Colorful log file]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/colorful-log-file.png){: .align-center}
+![Colorful log file]({{ '/' | absolute_url }}/assets/images/per-post/sublime-syntax-highlighting/colorful-log-file.png){: .align-center}
 
 Yay! Congratulations, now you know Kung-Fu! :)
 
@@ -403,7 +403,7 @@ Because we were eager to learn, we built our custom scripting language (aimed at
 
 This is a sample screenshot of one of the dialog files, properly highlighted:
 
-![Sahkab dialog file]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/sahkab-dialog.png){: .align-center}
+![Sahkab dialog file]({{ '/' | absolute_url }}/assets/images/per-post/sublime-syntax-highlighting/sahkab-dialog.png){: .align-center}
 
 I wish we had it when we were working on the prototype, as I can tell you it was a bit _less intuitive_ to write them with a white-only text :)
 
