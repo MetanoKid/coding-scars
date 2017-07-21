@@ -363,6 +363,6 @@ Still, having these tests will prove helpful in the future even if we didn't fol
 
 In the next post we'll continue building the logic of Triple Triad but we'll reduce the explanation to implement each feature to the test and then the code that makes it pass.
 
-You can find the code we've been building [here](https://github.com/{{ site.repository }}/assets/code-samples/per-post/tdd-triple-triad-0){:target="_blank"}.
+You can find the code we've been building [here](https://github.com/{{ site.repository }}/tree/master/assets/code-samples/per-post/tdd-triple-triad-0){:target="_blank"}.
 
 Thanks for reading!
