@@ -57,7 +57,7 @@ Triple Triad featured some base rules that applied throughout the game and some 
 
 Let's have a look at a screenshot of a typical game:
 
-![Triple Triad example game]({{ site.baseurl }}/assets/images/per-post/tdd-triple-triad-0/triple-triad-example-game.jpg){: .align-center}
+![Triple Triad example game]({{ '/' | absolute_url }}/assets/images/per-post/tdd-triple-triad-0/triple-triad-example-game.jpg){: .align-center}
 
 This would be our _design diagram_, instead of drawing one ourselves.
 
