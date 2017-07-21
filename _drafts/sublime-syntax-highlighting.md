@@ -24,7 +24,7 @@ I'd say it is hard to get an idea of what's really going on unless you are so in
 
 ![Colorful log file in Sublime Text 3]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/colorful-log-file.png){: .align-center}
 
-Okay, maybe you don't like the colors or maybe you would've highlighted other stuff. That's not the point, because we'll be learning how to achieve this result so you can roll your own!
+Okay, maybe you don't like the colors or maybe you would've highlighted other stuff. We'll be learning how to achieve this result so you can roll your own!
 
 # Sublime Text 3
 
@@ -34,15 +34,15 @@ First of all, you need to get yourself a copy of [Sublime Text 3](https://www.su
 
 Sublime Text lets you create your own syntax definitions and its highlighting through their own data files. Each syntax definition mainly consists of 2+1 files:
 
-  * **sublime-syntax** file: defines the structure of the syntax you are targetting.
-  * **tmTheme** file: defines styling for each capture you performed with the previous file.
-  * **sublime-settings** file: allows the user to create some properties for when the syntax is in use.
+  * **.sublime-syntax** file: defines the structure of the syntax you are targetting.
+  * **.tmTheme** file: defines styling for each match you performed within the previous file.
+  * **.sublime-settings** file: allows the user to create some properties to use when the syntax is in use.
 
 We'll walk through all of them as we progress through the following section.
 
 # Case study: unreadable log files
 
-Okay, so this is the sample log file we're using:
+Okay, so this is the sample log file we have:
 
 {% highlight text %}
 [I][LUA|COMP][4.59023] Compiling Lua file 'Enemies/AwesomeEnemy/Load.lua'
@@ -71,7 +71,7 @@ Let's start with a simple syntax definition and work from there.
 
 First of all, we're going to create the 2+1 files we mentioned before.
 
-Navigate to Sublime Text's `Packages` folder (`%appdata%\Sublime Text 3\Packages` in Windows, `~/.config/sublime-text-3/Packages` in Linux) and create a folder called `AwesomeCodingScarsLog`. Let's now add some _barebones_ files inside.
+Navigate to Sublime Text's `Packages` folder (`%appdata%\Sublime Text 3\Packages` in Windows, `~/.config/sublime-text-3/Packages` in Linux) and create a folder called `AwesomeCodingScarsLog`. Let's now add the _barebones_ files.
 
 ### AwesomeCodingScarsLog.sublime-syntax
 
@@ -145,7 +145,7 @@ Create it and paste this code:
 </plist>
 {% endhighlight %}
 
-This is the base file for the Monokai color scheme. Here we'll define our styling.
+This is the base file for the Monokai color scheme. Here we'll add our styling.
 
 ### AwesomeCodingScarsLog.sublime-settings
 
@@ -157,7 +157,7 @@ Create it and paste this code:
 }
 {% endhighlight %}
 
-This defines settings that override current ones when this syntax is selected. It tells Sublime Text to use our `.tmTheme` automatically when we select the syntax, so the styling is kept separate in that file.
+This defines settings that override the current ones when this syntax is selected. It tells Sublime Text to use our `.tmTheme` automatically when we select the syntax, so the styling is kept separate in that file.
 
 ### Set up sample log file
 
@@ -180,15 +180,13 @@ contexts:
 
 First lines declare it's a YAML file. It's mandatory for the syntax to be parsed.
 
-The `scope` property defines a name that's assigned to a match when applying styling. In this case, it's the default styling for the syntax (`source` is defined in Sublime Text's chain of scopes). A `scope` can have _nesting_, specifying scopes from least to most specific. If you want to know more, check [Sublime Text's official docs](https://www.sublimetext.com/docs/3/scope_naming.html){:target="_blank"}.
+The `scope` property defines a name that's assigned to a match when applying styling. In this case, it's the base styling for the syntax. A `scope` can have _nesting_, specifying scopes from least to most specific and applying them in a cascading fashion. If you want to know more, check [Sublime Text's official docs](https://www.sublimetext.com/docs/3/scope_naming.html){:target="_blank"} on this feature.
 
-After the global `scope` definition we find the `contexts` definition. It is a map of context definitions that act like a stack. Starting from the `main` context, it tries to `match` your file against some regular expressions that can modify this stack. In our case, we'll only work with the `main` one.
-
-Each `context` has, in turn, a list of `match` entries that define the regular expressions that will be checked against the file. When a match is found we'll assign `scopes` to apply styling.
+After the global `scope` definition we find the `contexts` definition. Each one, in turn, defines a list of regular expressions that `match` the lines in your file. When a `match` is found, we can modify the stack or apply styling.
 
 So, let's add the first one!
 
-## Everything's unexpected
+## Everything is unexpected
 
 This step is a temporal one that we'll use to ensure we're on the right track as we go.
 
@@ -200,7 +198,7 @@ Modify the only entry in the `main` `context` so it is:
   scope: acsl.unexpected
 {% endhighlight %}
 
-This means we're tagging everything with the `ascl.unexpected` style. However, it's still not defined. Let's fix that!
+This means we're tagging everything with the `ascl.unexpected` style. However, that's still not defined. Let's fix that!
 
 Open `AwesomeCodingScarsLog.tmTheme` and add this definition in the place where we had a comment:
 
@@ -222,7 +220,7 @@ With this, now we've got this lovely file:
 
 ![Everything's unexpected]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/everything-is-unexpected.png){: .align-center}
 
-This is our starting point, because we'll have a nice red background on everything we haven't matched.
+This is our starting point. We'll have a nice way of knowing we're missing some matchings.
 
 ## Log levels
 
@@ -238,19 +236,21 @@ In the `.sublime-syntax` file we're going to define matches for these, so inside
     1: acsl.debug
 {% endhighlight %}
 
-We're capturing the `[D]` log level and the rest of the line. The `scope` property is applied to the whole match and the `captures` list defines specific scopes for each capture group in the regular expression. This way, the `[D]` tag will have the `acsl.debug` scope and the rest of the capture will have the `acsl.line` one.
+We're capturing the `[D]` log level and the rest of the line. The `scope` property is applied to the whole `match` and the `captures` list defines specific scopes for each capture group in the regular expression. This way, the `[D]` tag will have the `acsl.debug` scope and the rest of the capture will have the `acsl.line` one.
 
 This will yield this highlighting:
 
 ![Everything's unexpected but Debug]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/everything-is-unexpected-but-debug.png){: .align-center}
 
-Repeat this match with the rest of the tags (using `acsl.` + `info`, `warning`, ...) and we'll have the following highlighting:
+Repeat this match with the rest of the tags (using `acsl.` + `info`, `warning`, ...) and we'll have the following file:
 
 ![Nothing is unexpected]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/nothing-is-unexpected-everything-is-unstyled.png){: .align-center}
 
+Nice! Now everything in the file is expected, but there's no styling yet!
+
 ### Styling log levels
 
-So, now that we've captured some stuff in our file we have to add some highlighting. Let's start with the `acsl.debug` scope. In the `.tmTheme` file, where we left a comment, paste this code:
+Let's start with the `acsl.debug` scope. In the `.tmTheme` file, where we left the comment, paste this code:
 
 {% highlight xml %}
 <dict>
@@ -268,16 +268,16 @@ So, now that we've captured some stuff in our file we have to add some highlight
 
 Do it again for each other log level with the following colors:
 
-  * `acsl.info`: #00B764
-  * `acsl.warning`: #EDD436
-  * `acsl.error`: #A50101
-  * `acsl.fatal`: #FF0000
+  * `acsl.info`: `#00B764`
+  * `acsl.warning`: `#EDD436`
+  * `acsl.error`: `#A50101`
+  * `acsl.fatal`: `#FF0000`
 
 You'll now have this style:
 
 ![Styled log levels]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/styled-log-levels.png){: .align-center}
 
-Great job! What if we extend the style in the log levels to the rest of the tags before the real log line?
+Great job, it's starting to take shape! What if we extend the style in the log levels to the rest of the tags before the real log line?
 
 ### Styling tag and timestamp
 
@@ -338,17 +338,19 @@ So, first of all, let's modify the `debug` match to be like this:
   scope: acsl.debug
 {% endhighlight %}
 
-This way we only match tags until the timestamp. Notice how we've dropped the `$` symbol and how we've ditched the `captures` list altogether: everything in the capture will have the same style. When Sublime Text tries to match the `'([^']+)'` pattern, this one won't trigger and it will safely work! You can modify the other captures so they have these changes. So, we save again and we see this:
+This way we only match tags until the timestamp. Notice how we've dropped the `$` symbol and how we've ditched the `captures` list altogether: everything in the capture will have the same style. When Sublime Text tries to match the `'([^']+)'` pattern, this one won't trigger and it will safely work! You can modify the other captures so they have these changes.
+
+So, we save again and we see this:
 
 ![Unexpected unexpectation]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/unexpected-unexpectation.png){: .align-center}
 
 Oh, no! Didn't we fix it?
 
-It's the same problem, but between the `.+` pattern and the `'([^']+)'` one. The former matches everywhere! In fact, if it wasn't the last one (i.e. it was before the `fatal` definition) it would be selected instead of the others!
+It's the same problem, but between the `.+` pattern and the `'([^']+)'` one. The former matches everywhere! In fact, if it wasn't the last one (i.e. it was before the `fatal` definition) it would be selected instead of the log ones!
 
-#### Enter several contexts
+### Enter several contexts
 
-Okay, so we know we've matched the start of each line, and those patterns will be preferred instead of the `unexpected` one because of definition order. What if we could say _Okay, this is a log line, it has these tags, and after the timestamp there's the real log data; and that is expected_? That's what we'll achieve by manipulating the context stack.
+Okay, so we know we've matched the start of each line, and those patterns will be preferred instead of the `unexpected` one because of definition order. What if we could say _Okay, this is a log line, it has these tags, and after the timestamp there's the real log data and we'll style it separately_? That's what we'll achieve by manipulating the context stack.
 
 Modify the `debug` match (and the other levels') to be like this:
 
@@ -373,7 +375,7 @@ contexts:
 
 It's defined as an entry in the `contexts` mapping. When it's in the stack, only this context will be processed until we modify the stack. So, we need to stop using it at some point or we won't use the `main` one again!
 
-That's what the `match: '$'` does. When we get to the end of the line (because our log files are single-lined), we pop the context so we go back to the previos one (the `main` context, for us).
+That's what the `match: '$'` does. When we get to the end of the line (because our log files are single-lined), we pop the context so we go back to the previous one (the `main` context, in this case).
 
 Now, move the _single quotes_ match into the `log_line` context and remove it from the `main` one. You will have this:
 
@@ -395,16 +397,18 @@ Yay! Congratulations, now you know Kung-Fu! :)
 
 # Bonus: Sahkab dialog files
 
-Back in 2012, some friends and I started a prototype for a videogame called _Sahkab_. It was a top-down adventure set in a sci-fi universe. Because we were eager to learn, we built our custom scripting language (aimed at the programmers) and our custom dialog file format (aimed at the writer).
+Back in 2012, some friends and I started a prototype for a videogame called _Sahkab_. It was a top-down adventure set in a sci-fi universe.
+
+Because we were eager to learn, we built our custom scripting language (aimed at the programmers) and our custom dialog file format (aimed at the writer).
 
 This is a sample screenshot of one of the dialog files, properly highlighted:
 
 ![Sahkab dialog file]({{ site.baseurl }}/assets/images/per-post/sublime-syntax-highlighting/sahkab-dialog.png){: .align-center}
 
-When we built it, we didn't have the highlighting, so I can tell you it was a bit _less intuitive_ to write them than we wanted :)
+I wish we had it when we were working on the prototype, as I can tell you it was a bit _less intuitive_ to write them with a white-only text :)
 
 ---
 
-I hope this post motivates you to build your own syntax definitions and help your team with it!
+I hope this post motivates you to build your own syntax definitions to help yourself and your team!
 
 Thanks for reading!
