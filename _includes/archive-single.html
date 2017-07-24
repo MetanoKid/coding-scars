@@ -23,6 +23,12 @@
           alt="">
       </div>
     {% endif %}
+    {% if include.type != "grid" and post.date %}
+    <div class="archive__item-date">
+      <span class="archive__item-date-day">{{ post.date | date: "%d" }}</span>
+      <span class="archive__item-date-month">{{ post.date | date: "%b" }}</span>
+    </div>
+    {% endif %}
     <h2 class="archive__item-title" itemprop="headline">
       {% if post.link %}
         <a href="{{ post.link }}">{{ title }}</a> <a href="{{ post.url | absolute_url }}" rel="permalink"><i class="fa fa-link" aria-hidden="true" title="permalink"></i><span class="sr-only">Permalink</span></a>
