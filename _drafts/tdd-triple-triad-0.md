@@ -204,6 +204,8 @@ it should "start empty" in {
 }
 {% endhighlight %}
 
+Good job! We've now implemented the first feature with a full TDD approach!
+
 ### Board as a square grid
 
 Okay, now that we've seen how we define our `Board` we'll model it as a 3x3 square grid. This time I won't be listing all the steps in the TDD checklist and may skip some of them.
@@ -361,7 +363,7 @@ I know you're thinking: _I like the concept, but it looks so cumbersome to creat
 
 Still, having these tests will prove helpful in the future even if we didn't follow the whole TDD checklist for each one of them.
 
-In the next post we'll continue building the logic of Triple Triad but we'll reduce the explanation to implement each feature to the test and then the code that makes it pass.
+In the next post of the series we'll continue building the logic of Triple Triad but we'll reduce the explanation to implement each feature so we can build the rest of them!
 
 You can find the code we've been building [here](https://github.com/{{ site.repository }}/tree/master/assets/code-samples/per-post/tdd-triple-triad-0){:target="_blank"}.
 
