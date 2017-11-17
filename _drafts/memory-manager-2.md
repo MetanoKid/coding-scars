@@ -1,7 +1,7 @@
 ---
 layout: single
 title: "Memory Management in C++: allocation"
-excerpt: Continue the series with the basics of memory allocation
+excerpt: Continues the series with the basic memory allocation for the manager
 author: Meta
 category: Computer Science
 tags:
