@@ -411,6 +411,6 @@ I wish we had it when we were working on the prototype, as I can tell you it was
 
 I hope this post motivates you to build your own syntax definitions to help yourself and your team!
 
-You can find the code we've been writing [here](https://github.com/{{ site.repository }}/assets/code-samples/per-post/sublime-syntax-highlighting){:target="_blank"}.
+You can find the code we've been writing [here](https://github.com/{{ site.repository }}/tree/master/assets/code-samples/per-post/sublime-syntax-highlighting){:target="_blank"}.
 
 Thanks for reading!

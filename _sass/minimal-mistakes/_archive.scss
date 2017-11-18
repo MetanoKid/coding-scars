@@ -41,6 +41,34 @@
   }
 }
 
+.archive__item-date {
+  display: none;
+
+  @include breakpoint($large) {
+    display: block;
+  }
+
+  float: left;
+  margin-left: -70px;
+  border-radius: 50%;
+  background-color: #2980b9;
+  width: 60px;
+  height: 60px;
+  text-align: center;
+  line-height: 22px;
+  padding-top: 5px;
+  color: white;
+
+  .archive__item-date-day {
+    display: block;
+  }
+
+  .archive__item-date-month {
+    display: block;
+    font-size: 24px;
+  }
+}
+
 /* remove border*/
 .page__content {
 
@@ -70,10 +98,6 @@
 .archive__item:hover {
   .archive__item-teaser {
     box-shadow: 0 0 10px rgba(#000, 0.25);
-  }
-
-  .archive__item-title {
-    text-decoration: underline;
   }
 }
 
