@@ -8,10 +8,12 @@ tags:
   - Programming
   - Memory Management
   - Videogames development
+  - Hexadecimal
+  - Two's complement
 series: Memory Management in C++
 ---
 
-Hi again, dear reader!
+Welcome back, dear reader!
 
 In the previous post in the series we walked through dumping our big memory chunk to understand its contents. This time we'll start using this memory to allocate smaller chunks by user request.
 
@@ -40,9 +42,11 @@ Let's check it with an example.
 
 ## Anatomy of a chunk
 
-Suppose the start of the memory we manage is at `0x00000000` and the user requests 4 bytes from it. We would need to store the `cMemoryChunk` header first, and then the 4 bytes we were requested, right?
+![Anatomy of a chunk]({{ '/' | absolute_url }}/assets/images/per-post/memory-manager-2/chunk-anatomy.png){: .align-center}
 
-Assume we already had a method on our manager called `allocate` that receives the amount of bytes an user has requested. Let's say we called:
+Suppose the start of the memory we manage is at `0x00000000` and the user requests 4 bytes from it. We would need to store the `cMemoryChunk` _header_ first, and then the 4 bytes we were requested, right?
+
+Assume we already had a method on our manager called `allocate` that receives the number of bytes an user has requested. Let's say we called:
 
 {% highlight c++ %}
 cMemoryManager memoryManager(32);
@@ -94,13 +98,13 @@ If we remember `malloc`, it has the following signature:
 void *malloc(size_t size);
 {% endhighlight %}
 
-Did you notice the `void *` return value? That's the address to the start of the memory the system is returning to the user. We're defining `allocate` as:
+Did you notice the `void *` return value? That's the address to the start of the memory the system is returning to the user. With this in mind we're defining `allocate` as:
 
 {% highlight c++ %}
 void *allocate(unsigned int bytes);
 {% endhighlight %}
 
-It's not exactly the same because we're using `unsigned int` instead of `size_t` (it is a more explicit type, but type `size_t` can be bigger than, equal to or smaller than `unsigned int` depending on the platform, so be careful).
+It's not exactly the same signature because we're using `unsigned int` instead of `size_t` (it is a more explicit type, but type `size_t` can be bigger than, equal to or smaller than `unsigned int` depending on the platform, so be careful).
 
 ## First steps on allocation
 
@@ -133,11 +137,11 @@ void *cMemoryManager::allocate(unsigned int bytes)
 
 I'm sure you have noticed something wrong already, but let's understand it step by step and address the problems later.
 
-First of all, we get a pointer to the start of the memory we're managing into `chunkAddress`. We get another pointer to it into `chunk` but this time we interpret it as a `cMemoryChunk`. This way we can reference its members and treat that slice of the memory as a fully-fledged chunk.
+First of all, we get a pointer to the start of the memory we're managing into `chunkAddress`. We get another pointer to it into `chunk` but this time we interpret it as a `cMemoryChunk`. This way we can reference its members and treat that slice of the memory as a fully-fledged `cMemoryChunk` instance.
 
 What's the total size of the user-requested memory, then? For each memory request we need to create a _header_, so we'll be using `sizeof(cMemoryChunk) + bytes`. That's what we subtract from `m_freeBytesCount`, so we can keep track of the remaining free memory.
 
-Do you remember the `AA:AA:AA:AA` bytes we had in the previous dump? These are the trashing options we defined:
+Do you remember the `AA:AA:AA:AA` bytes we had in the previous dump? Checking back the previous entry in the series we defined these trashing options:
 
 {% highlight c++ %}
 #define MemoryManagerTrashingOptions \
@@ -157,6 +161,8 @@ I already heard your brain yelling: _okay, okay, but this code only allows to ha
 ## Creating new chunks
 
 For our memory manager, there's a thing that must hold true at any given time: _we need an empty chunk at the tail of the list of chunks_. If you remember, the first thing we do when we build the manager is creating an empty chunk.
+
+![Next chunk]({{ '/' | absolute_url }}/assets/images/per-post/memory-manager-2/following-chunk.png){: .align-center}
 
 So, as part of the `allocate` method we need to create this trailing empty chunk. How do we do it?
 
@@ -189,9 +195,11 @@ When we build a `cMemoryChunk` we tell it how many bytes are free from it and on
 
 Again, a chunk occupies the size of the _header_ and the user-requested memory; so the new available memory after the chunk is the one it had, minus the bytes the user requested, minus the memory it takes to allocate a new _header_ for the empty trailing chunk.
 
-Finally, we've got to link the new chunk with the previous and next ones. We'll always have a previous one, as we've earlier said this chunk is the tail. However, later on when we deallocate chunks, we can have an empty chunk in between two in-use chunks. When we use that empty space to create a new chunk, we'll have a following one that's in use (so the new one isn't the tail anymore). In other words, it's a _doubly-linked list_ and we have to keep the links pointing to the right places.
+Finally, we've got to link the new chunk with the previous and next ones. We'll always have a previous one, as we've earlier said this chunk was the tail. However, later on when we deallocate chunks, we can have an empty chunk in between two in-use chunks. When we use that empty space to create a new chunk, we'll have a following one that's in use (so the new one isn't the tail anymore). In other words, it's a _doubly-linked list_ and we have to keep the links pointing to the right places.
 
-Phew! So, what's missing? So far we've created a new chunk, but if we called `allocate` several times we would be overriding the same first chunk over and over. What are we missing?
+![Linked chunks]({{ '/' | absolute_url }}/assets/images/per-post/memory-manager-2/linked-chunks.png){: .align-center}
+
+Phew! So, what's missing? So far we've created a new chunk, but if we were to call `allocate` several times in a row we would be overriding the same first chunk over and over. What are we missing?
 
 {% highlight c++ %}
 void *cMemoryManager::allocate(unsigned int bytes)
@@ -219,9 +227,9 @@ void *cMemoryManager::allocate(unsigned int bytes)
 }
 {% endhighlight %}
 
-Instead of starting at `m_memory`, which is the pointer to the start of the memory we manage, we have to find the first chunk that can store the memory that's been requested. It can happen that we've ran out of usable memory, so we'll be returning `nullptr` when we can't give any memory to the user.
+Instead of starting at `m_memory`, which is the pointer to the start of the memory we manage, we have to find the first chunk that can store the memory that's been requested. It can happen that we've ran out of usable memory, so we'll be returning `nullptr` when we can't hand in any memory to the user.
 
-If you double-check, the test `chunk->m_bytes >= (bytes + chunkSize)` is using the same total size we mentioned earlier when creating a new chunk.
+If you _double-check_, the test `chunk->m_bytes >= (bytes + chunkSize)` is using the same total size we mentioned earlier when creating a new chunk.
 
 ## Allocate method put together
 
@@ -286,11 +294,11 @@ void *cMemoryManager::allocate(unsigned int bytes)
 
 We can improve it further and add a new case on the search for a valid chunk. Stay with me as I explain it.
 
-We could also use a free chunk that's followed by another one even when the user-requested bytes fit in it _but_ a new _header_ doesn't: we'd skip creatin a new _header_ in it, link the chunk to the next one and say it uses as many extra bytes as needed to fill up to the next chunk. Got it? :) 
+We could also use a free chunk that's followed by another one even when the user-requested bytes fit in it _but_ a new _header_ doesn't: we'd skip creating a new _header_ in it, link the chunk to the next one and say it uses as many extra bytes as needed to fill up to the next chunk. Got it? :) 
 
 ## Testing it!
 
-Alright! Let's see if our hard work yielded something useful!
+Alright! Let's see if our hard work yielded something useful! This is our test program:
 
 {% highlight c++ %}
 cMemoryManager memoryManager(80);
@@ -392,7 +400,7 @@ Phew, it worked flawlessly! Great job!
 
 #### Bonus: two's complement
 
-Note that `0xFFFFFFF6` is a negative number in [two's complement](https://en.wikipedia.org/wiki/Two%27s_complement){:target="_blank"}. To get the decimal value we've got to invert all bits and then add 1 in its binary representation, or subtract the value to its most negative number: `0x100000000` (yes, that's 9 digits because we're using a 4 bytes number). With that, we've got:
+Note that `0xFFFFFFF6` is a negative number in [two's complement](https://en.wikipedia.org/wiki/Two%27s_complement){:target="_blank"}. To get the decimal value we've got to invert all bits and then add 1 in its binary representation, or subtract the value to its most negative number: `0x100000000` (yes, that's 9 digits because we're using a 4-byte number). With that, we've got:
 
 {% highlight text %}
     0x100000000          <- 9 digits
