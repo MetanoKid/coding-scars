@@ -1,5 +1,5 @@
 $(document).ready(function() {
-	let elementClassToEvent = {
+	let elementClassToAction = {
 		".series-post-entry-link": "Series entry",
 		".previous-post-top":      "Previous post top",
 		".next-post-top":          "Next post top",
@@ -8,9 +8,12 @@ $(document).ready(function() {
 		".related-post":           "Related post",
 	};
 
-	for(elementClass in elementClassToEvent) {
-		$(elementClass).on("click", (event) => {
-			ga("send", "event", "Link", elementClassToEvent[elementClass], $(this).attr("href"));
-		});
+	for(elementClass in elementClassToAction) {
+		(function (elementClass, action) {
+			$(elementClass).on("click", (event) => {
+				event.preventDefault();
+				ga("send", "event", "Link", action, $(event.target).attr("href"));
+			});
+		})(elementClass, elementClassToAction[elementClass]);
 	}
 });
