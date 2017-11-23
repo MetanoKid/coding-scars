@@ -11,7 +11,6 @@ $(document).ready(function() {
 	for(elementClass in elementClassToAction) {
 		(function (elementClass, action) {
 			$(elementClass).on("click", (event) => {
-				event.preventDefault();
 				ga("send", "event", "Link", action, $(event.target).attr("href"));
 			});
 		})(elementClass, elementClassToAction[elementClass]);
