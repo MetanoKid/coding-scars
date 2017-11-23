@@ -1,26 +1,3 @@
-<!--{% if page.series %}
-	{% capture title_series_prefix %}{{ page.series }}: {% endcapture %}
-	<div class="notice series-summary {{ include.position }}">
-		<h1 class="series-title">{{ page.series }}</h1>
-		<ol class="posts-list">
-		{% for post in site.posts reversed %}
-			{% if post.series == page.series %}
-				{% capture series_entry_title %}{{ post.title | remove: title_series_prefix }}{% endcapture %}
-				{% capture first_letter %}{{ series_entry_title | slice: 0 }}{% endcapture %}
-				{% capture capitalized_title %}{{ first_letter | upcase }}{{ series_entry_title | remove_first: first_letter }}{% endcapture %}
-				<li>
-					{% if post == page %}
-						{{ capitalized_title }}
-					{% else %}
-						<a href="{{ '/' | absolute_url }}{{ post.url | slugify }}">{{ capitalized_title }}</a>
-					{% endif %}
-				</li>
-			{% endif %}
-		{% endfor %}
-		</ol>
-	</div>
-{% endif %}-->
-
 {% if page.series %}
 	{% capture title_series_prefix %}{{ page.series }}: {% endcapture %}
 	<div class="notice series-summary {{ include.position }}">
@@ -56,7 +33,7 @@
 					{% if post == page %}
 						{{ capitalized_title }}
 					{% else %}
-						<a href="{{ '/' | absolute_url }}{{ post.url | slugify }}">{{ capitalized_title }}</a>
+						<a class="series-post-entry-link" href="{{ '/' | absolute_url }}{{ post.url | slugify }}">{{ capitalized_title }}</a>
 					{% endif %}
 				</li>
 			{% endif %}
