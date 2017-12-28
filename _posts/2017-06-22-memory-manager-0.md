@@ -59,7 +59,7 @@ With this series of posts I want to go through the progress of building a simple
 
 And, if we manage to outperform `new` and `delete` we'll throw a party!
 
-# The Big Picure
+# The Big Picture
 
 Let's try to understand the idea behind what we're trying to achieve.
 
