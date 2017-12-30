@@ -54,7 +54,7 @@ We couldn't.
 
 Fast forward to 8 months after we moved. The noise continued and we were feeling so embarrased when we'd meet them in the elevator or the building. We were also noticing how irascible we were becoming because of the lack of sleep.
 
-Some time before that time I had watched this YouTube video:
+Some time before that I had watched this YouTube video:
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/KnHYKVIbDcs?rel=0" frameborder="0" gesture="media" allow="encrypted-media" allowfullscreen></iframe>
 
@@ -62,7 +62,7 @@ And I loved how he managed to annoy his neighbors even when he wasn't home. And 
 
 # Noisy Neighbors Karma Restorer
 
-The idea to build a program to play very noisy songs to our neighbors intermittently during the day. Something like:
+The idea was to build a program to play very noisy songs to our neighbors intermittently during the day. Something like:
 
 _Select a noisy song with a hard bass, play the first N seconds and then remain silent for M seconds. Repeat._
 
@@ -70,13 +70,13 @@ Then I could just leave home for work, leave it on and fulfill my vengeance. Say
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/tgIqecROs5M?rel=0" frameborder="0" gesture="media" allow="encrypted-media" allowfullscreen></iframe>
 
-That would include placing our subwoofer very close to the ceiling and upwards. It surely would be a show to watch. And to listen to!
+That would include placing our subwoofer very close to the ceiling and upwards. It surely would be a show to watch. And to listen to! I can tell you it was impossible to stay in the room while it played.
 
 ## The tech
 
 Okay, so I had a brand new side project. What did I want to learn?
 
-I chose Node.js because I wanted to build a REST API to control it from an Android app. I'd open the app, hit a big _Play_ button with some pre-selected values and then leave for the day. Then come home, open the app again and press the big _Stop_ button. Simple! Or was it?
+I chose Node.js because I wanted to build a REST API to control it from an Android app. I'd open the app, hit a big _Play_ button with some pre-selected values and then leave for the day. Then came home, open the app again and press the big _Stop_ button. Simple! Or was it?
 
 ### First difficulty
 
@@ -117,11 +117,11 @@ Nothing special here, just wanted the basic controls. These would be some exampl
 > GET /songs
 
 < 200 OK
-{
+[
   "demo.mp3",
   "Sail - AWOLNATION.mp3",
   "Dark Horse - Katy Perry.mp3"
-}
+]
 {% endhighlight %}
 
 {% highlight json %}
@@ -187,7 +187,7 @@ In any case, it was a nice way to focus on something else with a goal in mind. I
 
 Because I didn't manage to make `player` work on Windows, I had to go through the process of installing a fresh version of Ubuntu. After it was installed it wasn't a bad thing per-se, but that also took away some of the interest on the project.
 
-Also, I'm afraid the noise never stopped and we ended up moving to another town. Not only because of the neighbors, but they were one of the main reasons. Luckily for us, we moved to a very quiet apartment and never needed this project again (yet).
+Also, I'm afraid the noise never stopped and we ended up moving to another town. Not only because of the neighbors, but they were one of the main reasons. Luckily for us, we moved to a very quiet apartment and never needed to use this project again (for now).
 
 ## The Ugly
 
