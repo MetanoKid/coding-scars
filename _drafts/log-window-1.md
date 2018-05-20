@@ -15,9 +15,9 @@ series: Log window from scratch
 
 Welcome back, dear reader!
 
-In this post we'll create a basic standalone log window in WPF that we'll use as the foundation of our project. I recommend you check out the previous entry in the series if you want to know the motivation or the road map.
+In this post we'll create a basic standalone log window in WPF that we'll use as the foundation of our project. I recommend you checking out the previous entry in the series if you want to know the motivation or the road map.
 
-We'll end up having this:
+We'll end up with this, after the post:
 
 ![Sample display data]({{ '/' | absolute_url }}/assets/images/per-post/log-window-1/sample-data.png){: .align-center}
 
@@ -40,14 +40,14 @@ In the project you have three files related to the Application:
 
 There are also two files related to the Window:
 
-  * `MainWindow.xaml`: declares the controls for the window and their properties.
+  * `MainWindow.xaml`: declares the controls for the window, their properties and even some behavior.
   * `MainWindow.xaml.cs`: C# class for this Window, which will hold our custom behavior.
 
 One of the properties in `App.xaml` is `StartupUri`, which holds a reference to the `MainWindow.xaml` we've mentioned.
 
-At first, when I started learning a the little bit of WPF I know now, it felt like _Magic_. Where is the entry point defined? There's no _Main_ function! How does it know which window to display? Hint: it all starts in the _Properties_ page.
+At first, when I started learning the little bit of WPF I know now, it felt like _Magic_. Where is the entry point defined? There's no _Main_ function! How does it know which window to display? Hint: it all starts in the _Properties_ page and ends up in the `StartupUri`.
 
-For now, we'll just work with these default files and configurations as a standalone WPF project. Later on, we'll convert it to a Class Library and will learn how the Application-Window relationship works.
+For now, we'll just work with these default files and configurations as a standalone WPF project. In the next post, we'll convert it to a Class Library and will learn how the Application-Window relationship works.
 
 # Basic UI controls
 
@@ -76,7 +76,7 @@ Let's open the `MainWindow.xaml` file now. The Designer will open for us showing
 </Window>
 {% endhighlight %}
 
-After drag-and-dropping some of the controls in the `Toolbox` panel into the designer and configuring some of them, I have this markup:
+After drag-and-dropping some of the controls from the `Toolbox` panel into the Designer and configuring some of them, we'll have this markup:
 
 {% highlight xml %}
 <Window x:Class="LogWindowUI.MainWindow"
@@ -115,6 +115,8 @@ Although WPF lets you tie your UI and your logic in a tightly-coupled way (code 
 
 MVVM stands for [Model-View-ViewModel](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel){:target="_blank"} and it's an architectural pattern that helps separate the UI development (the `View`) from the program logic its data (the `Model`). The ViewModel is kind of a _converter_ from the `Model` to the `View` representation (it handles the _presentation logic_).
 
+In other words, the `Model` is connected with the `ViewModel` which is connected to the `View`. Whenever the `Model` changes, the `ViewModel` notices and notifies the `View` to update accordingly. When the user interacts with the `View`, the `ViewModel` is modified which, in turn, ends up in an update of the `Model`.
+
 How does this affect us? Well, first of all, let's understand which one of them maps to which concept in our program.
 
 ## Model
@@ -142,7 +144,7 @@ If you have a look at the previous XAML code we've listed, you can see we create
 
 Our `LogEntryList` control takes any `IEnumerable` object as its `ItemsSource` and displays it. The `View` relies on the `ViewModel` notifying of a data change to update its visual representation. So, if we used a `List<LogEntry>` we'd see nothing when we add a new item: it doesn't notify anyone.
 
-WPF comes with an interesting collection called `ObservableCollection<T>`. It knows how to notify of a data change of the collection itself (an element is added or removed). So, open `MainWindow.xaml.cs` and add this property in the `MainWindow` class:
+WPF comes with an interesting collection called `ObservableCollection<T>`. It knows how to notify of a data change in the collection itself (an element is added or removed). So, open `MainWindow.xaml.cs` and add this property in the `MainWindow` class:
 
 {% highlight c# %}
 public ObservableCollection<LogEntry> LogEntries;
@@ -167,7 +169,12 @@ public MainWindow()
     LogEntryList.ItemsSource = LogEntries;
 
     // add test data
-    LogEntries.Add(new LogEntry { Timestamp = 0.1f, System = "TEST", Message = "Hello, codingScars!" });
+    LogEntries.Add(new LogEntry
+    {
+        Timestamp = 0.1f,
+        System = "TEST",
+        Message = "Hello, codingScars!"
+    });
 }
 {% endhighlight %}
 
@@ -228,7 +235,7 @@ _This type of CollectionView does not support changes to its SourceCollection fr
 
 # STA
 
-WPF uses the `Single Thread Apartment` model. This means that, any object that's created within a thread can only be modified by that thread. The `Application` is running in what we call the _UI Thread_, which is the main one. Because we've created our own thread, we can't modify `LogEntries` directly: this new thread doesn't own the collection.
+WPF uses the `Single Thread Apartment` model. This means that, any object that's created within a thread can only be modified by that thread. The `Application` is running in what we call the _UI Thread_, which is the main one in our case. Because we've created our own thread, we can't modify `LogEntries` directly: this new thread doesn't own the collection.
 
 To make it work, let's change the code to this one:
 
@@ -252,7 +259,7 @@ Run it again and... it works!
 
 ## Dispatcher
 
-Whenever we want some code to be executed in the `UI Thread` we can use its `Application`'s `Dispatcher` to queue the actions we want to perform.
+Whenever we want some code to be executed in the `UI Thread` we can use its `Dispatcher` to queue the actions we want to perform.
 
 There are two important methods to queue actions: `BeginInvoke` is asynchronous and `Invoke` is synchronous.
 
