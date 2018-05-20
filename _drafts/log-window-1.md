@@ -1,7 +1,7 @@
 ---
 layout: single
 title: "Log window from scratch: basic window"
-excerpt:
+excerpt: "Simple WPF standalone program to display log entries"
 author: Meta
 category: Toolbox
 tags:
