@@ -7,9 +7,9 @@ category: Toolbox
 tags:
   - Log
   - WPF
-  - Logcat
-  - C++
+  - CSharp
   - MVVM
+  - Binding
 series: Log window from scratch
 ---
 
