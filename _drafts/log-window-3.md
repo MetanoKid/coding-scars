@@ -765,3 +765,11 @@ What about adding more systems and more log levels from the host program?
 ![Final sample window with extra configuration]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/final-sample-window-extra-configuration.png){: .align-center}
 
 Congratulations, reader! You've got a configurable log window of your own! :)
+
+---
+
+Oh well, I guess that's it! We've gone through some useful features: positioning, auto-scroll, configuring log systems and log levels, filtering... Which other features you'd like to add?
+
+I hope this series helps you create your own version of the log window and use it in the future on your side projects!
+
+Thanks for reading!
