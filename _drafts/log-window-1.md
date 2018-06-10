@@ -40,26 +40,24 @@ In the project you have three files related to the Application:
 
 There are also two files related to the Window:
 
-  * `MainWindow.xaml`: declares the controls for the window, their properties and even some behavior.
-  * `MainWindow.xaml.cs`: C# class for this Window, which will hold our custom behavior.
+  * `MainWindow.xaml`: declares the controls for the window, their properties and some behavior.
+  * `MainWindow.xaml.cs`: C# class for this Window, which will hold its custom logic.
 
-One of the properties in `App.xaml` is `StartupUri`, which holds a reference to the `MainWindow.xaml` we've mentioned.
+At first, when I started learning the little bit of WPF I know now, it felt like _Magic_. Where is the entry point defined? There's no _Main_ function! How does it know which window to display? Hint: it all starts in the _Properties_ page and ends up in the `StartupUri` of `App.xaml`.
 
-At first, when I started learning the little bit of WPF I know now, it felt like _Magic_. Where is the entry point defined? There's no _Main_ function! How does it know which window to display? Hint: it all starts in the _Properties_ page and ends up in the `StartupUri`.
-
-For now, we'll just work with these default files and configurations as a standalone WPF project. In the next post, we'll convert it to a Class Library and will learn how the Application-Window relationship works.
+For now, we'll just work with these default files and configurations as a standalone WPF project. In the next post, we'll convert it to a `Class Library` and will learn how the Application-Window relationship works.
 
 # Basic UI controls
 
 Okay, so we have the default WPF stuff. Let's start creating our UI!
 
-If you remember, the bare minimum we wanted to have a tabular display of the log data. Let's have three columns:
+If you remember, the bare minimum we wanted to have a tabular display of the log data. Maybe with three columns:
 
   * Timestamp: can be any kind of timestamp we want from _seconds since startup_ to _full date timestamp_.
-  * System/tag: each message can be tagged with a key, like the sub-system it comes from (i.e. _net_ or _render_).
+  * System/tag: each message can be tagged with a key, like the system it comes from (i.e. _net_ or _render_).
   * Message: the log data itself.
 
-Let's open the `MainWindow.xaml` file now. The Designer will open for us showing two panels: one with the graphical representation of our window and one with the XAML markup. It looks something like this (some names will differ):
+Let's open the `MainWindow.xaml` file now. The Designer will open for us showing two panels: one with the graphical representation of our _Window_ and one with the XAML markup. It looks something like this (some names will differ):
 
 {% highlight xml %}
 <Window x:Class="LogWindowUI.MainWindow"
@@ -76,17 +74,10 @@ Let's open the `MainWindow.xaml` file now. The Designer will open for us showing
 </Window>
 {% endhighlight %}
 
-After drag-and-dropping some of the controls from the `Toolbox` panel into the Designer and configuring some of them, we'll have this markup:
+Add a `ListView` into the XAML panel with this markup:
 
 {% highlight xml %}
-<Window x:Class="LogWindowUI.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:LogWindowUI"
-        mc:Ignorable="d"
-        Title="Log" Height="350" Width="600">
+<Window ...>
     <Grid>
         <ListView x:Name="LogEntryList">
             <ListView.View>
@@ -113,9 +104,9 @@ So far we've just defined how we want our window to look like but it doesn't do 
 
 Although WPF lets you tie your UI and your logic in a tightly-coupled way (code knows which control to update when something happens, control knows which data to update, ...), the MVVM way is preferred.
 
-MVVM stands for [Model-View-ViewModel](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel){:target="_blank"} and it's an architectural pattern that helps separate the UI development (the `View`) from the program logic its data (the `Model`). The ViewModel is kind of a _converter_ from the `Model` to the `View` representation (it handles the _presentation logic_).
+MVVM stands for [Model-View-ViewModel](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel){:target="_blank"} and it's an architectural pattern that helps separate the UI representation (the `View`) from the program logic and its data (the `Model`). The `ViewModel` is kind of a _converter_ from the `Model` to the `View` (and handles the _presentation logic_).
 
-In other words, the `Model` is connected with the `ViewModel` which is connected to the `View`. Whenever the `Model` changes, the `ViewModel` notices and notifies the `View` to update accordingly. When the user interacts with the `View`, the `ViewModel` is modified which, in turn, ends up in an update of the `Model`.
+In other words, the `Model` is connected with the `ViewModel`, which is connected to the `View`. Whenever the `Model` changes, the `ViewModel` notices and notifies the `View` to update accordingly. When the user interacts with the `View`, the `ViewModel` is modified which, in turn, ends up in an update of the `Model`.
 
 How does this affect us? Well, first of all, let's understand which one of them maps to which concept in our program.
 
@@ -150,11 +141,11 @@ WPF comes with an interesting collection called `ObservableCollection<T>`. It kn
 public ObservableCollection<LogEntry> LogEntries;
 {% endhighlight %}
 
-In this case, we could say that the `LogEntry` `Model` is also acting as a `ViewModel` because we're using it directly as part of the `ObservableCollection`.
+In this case, we could say that the `LogEntry` `Model` is also acting as a `ViewModel` because we're using it directly as part of the `ObservableCollection`. However, we could have a hard separation between the `Model` and the `ViewModel` if we were doing more than just showing data.
 
 # Displaying logs
 
-Okay, now that we know what's what, let's get some logs on screen!
+Okay, now that we know what's what, let's get some messages on screen!
 
 First of all, let's hardcode some messages to be displayed. Open the `MainWindow` constructor and make it this one:
 
@@ -199,7 +190,7 @@ That's because we haven't told the `View` how to display each property of an ind
 </ListView>
 {% endhighlight %}
 
-The `DisplayMemberBinding` attribute defines what to display in a column. With the `{Binding Message}` value, we're telling WPF to look for a Property called `Message` in the `LogEntry` object. Thank Reflection for that!
+The `DisplayMemberBinding` attribute defines which data to display in a column. With the `{Binding Message}` value, we're telling WPF to look for a Property called `Message` in the `LogEntry` object. Thank Reflection for that! Please note, `{Binding ...}` is used to connect the `View` with the `ViewModel` and it can be done with properties other than `DisplayMemberBinding`.
 
 Run it again and it will show this:
 
@@ -207,7 +198,7 @@ Run it again and it will show this:
 
 Yay! We've got it!
 
-## Extra test
+## Live update
 
 Okay, okay, we've displayed some text, but it's not displaying anything _live_. Why don't we do that now?
 
@@ -259,7 +250,7 @@ Run it again and... it works!
 
 ## Dispatcher
 
-Whenever we want some code to be executed in the `UI Thread` we can use its `Dispatcher` to queue the actions we want to perform.
+Whenever we want some code to be executed in the `UI Thread` we can use the `Dispatcher` object for the _Application_ to queue the actions we want to perform.
 
 There are two important methods to queue actions: `BeginInvoke` is asynchronous and `Invoke` is synchronous.
 
@@ -295,10 +286,10 @@ Running it will show something like this:
 
 ![Sample display data]({{ '/' | absolute_url }}/assets/images/per-post/log-window-1/sample-data.png){: .align-center}
 
-Phew! That's what we wanted!
+Phew! Not bad! Good job :)
 
 ---
 
-We've created the foundation of our log window and learned about the MVVM pattern. In the next post we'll take this standalone WPF program and make it a Class Library that we can use from another _host program_.
+Through the post we've created the foundation of our log window from scratch and learned about the MVVM pattern. In the next post we'll take this standalone WPF program and make it a `Class Library` that we can use from a _host program_.
 
-Thank you for reading!
+Thank you for reading! See you then!
