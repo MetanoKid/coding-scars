@@ -324,7 +324,7 @@ This implementation has an unexpected behavior at this point, but let's continue
 
 We said we'd like to have as many checkboxes as systems so we could filter them to fit our needs. So, we need to add them somewhere. Maybe... to the bottom like this?
 
-![Doodle layout with per-system filters]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/doodle-per-system-filter.png){: .align-center}
+![Doodle layout with per-system filters]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/doodle-per-system-filter-layout.png){: .align-center}
 
 For that, and again skipping some of the XML attributes, we have to update our layout to this:
 
