@@ -7,16 +7,21 @@ category: Toolbox
 tags:
   - Log
   - WPF
-  - C++
+  - CSharp
   - MVVM
   - Class Library
   - Filter
+  - System
+  - Log level
+  - Debug
+  - Warning
+  - Error
 series: Log window from scratch
 ---
 
 Welcome to a new entry in the _Log window from scratch_ series, dear reader!
 
-In the previous entry we converted our WPF window into a `Class Library` and created a _host project_ that consumed it. This time, we'll expose some configuration to the _host project_ and add some new functionality to the window. This way we can support several projects and make it more useful.
+In the previous entry we converted our WPF window into a `Class Library` and created a _host program_ that consumed it. This time, we'll expose some configuration to the _host program_ and add some new functionality to the window. This way we can support several projects and make it more useful.
 
 Ready? Set? Go!
 
@@ -93,7 +98,7 @@ If you were to use the window as it is now, you would notice the scroll isn't mo
 
 We'll be adding a checkbox to our window that lets us activate or deactivate this functionality. This isn't something that the host program will configure, but something that's built-in our window. So our layout will be something like this:
 
-TODO: doodle of our window with two parts: top line with built-in configuration, center block with the logs
+![Doodle layout built-in configuration and log messages]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/doodle-built-in-configuration.png){: .align-center}
 
 ## Layout update
 
@@ -319,7 +324,7 @@ This implementation has an unexpected behavior at this point, but let's continue
 
 We said we'd like to have as many checkboxes as systems so we could filter them to fit our needs. So, we need to add them somewhere. Maybe... to the bottom like this?
 
-TODO: doodle of our window with three parts: top line with built-in configuration, center block with the logs, bottom line with system filtering
+![Doodle layout with per-system filters]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/doodle-per-system-filter.png){: .align-center}
 
 For that, and again skipping some of the XML attributes, we have to update our layout to this:
 
@@ -546,7 +551,7 @@ We've established the relationship between log levels. Following our example, `d
 
 The layout of our window would look like this with this addition:
 
-TODO: doodle with 4 rows: built-in, log messages, systems and log levels
+![Doodle with full layout]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/doodle-full-layout.png){: .align-center}
 
 So, once again, let's skip some XML attributes and update the layout:
 
