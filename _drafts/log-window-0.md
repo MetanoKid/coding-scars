@@ -9,6 +9,7 @@ tags:
   - WPF
   - Logcat
   - C++
+  - CSharp
 series: Log window from scratch
 ---
 
