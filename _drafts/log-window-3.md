@@ -1,6 +1,6 @@
 ---
 layout: single
-title: "Log window from scratch: handy functionality and configuration"
+title: "Log window from scratch: handy functionality and configuration (part 1)"
 excerpt: "Configure the log window from the host application and add useful functionality like filters and auto-scroll"
 author: Meta
 category: Toolbox
@@ -12,10 +12,6 @@ tags:
   - Class Library
   - Filter
   - System
-  - Log level
-  - Debug
-  - Warning
-  - Error
 series: Log window from scratch
 ---
 
@@ -92,11 +88,11 @@ Bonus idea: we could ask the window about its position and size from the host pr
 
 # Auto-scroll to bottom
 
-This will be the first addition we're adding that will modify our window's layout.
+This will be the first addition that will modify our window's layout.
 
 If you were to use the window as it is now, you would notice the scroll isn't moving unless you do it manually. This may be useful if you are reading some of the messages, but most of the time you may want it to scroll to the last message automatically.
 
-We'll be adding a checkbox to our window that lets us activate or deactivate this functionality. This isn't something that the host program will configure, but something that's built-in our window. So our layout will be something like this:
+We'll be adding a checkbox to our window that lets us activate or deactivate this functionality. This isn't something the _host program_ can choose to have or not, but something that's built-in. So our layout will be something like this:
 
 ![Doodle layout built-in configuration and log messages]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/doodle-built-in-configuration.png){: .align-center}
 
@@ -123,7 +119,7 @@ Let's start with the built-in block. This is the updated `MainWindow.xaml` file 
 </Window>
 {% endhighlight %}
 
-As you can see, we've wrapped everything into a `DockPanel` which allows us to resize the window and keep every control stretched as we want. This is how it looks:
+As you can see, we've wrapped everything into a `DockPanel` which allows us to resize the window and keep every control stretched as we want while keeping some parts fixed. This is how it looks:
 
 ![New layout with auto-scroll]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/layout-with-auto-scroll.png){: .align-center}
 
@@ -172,13 +168,18 @@ For now, we've used our own log capability to show a message in the window whene
 
 ## Scroll to bottom
 
-By default, when a new item is added to the `ListBox` that contains our log messages no scroll is performed. We'd want to know when an item is added to the list so we can perform the scroll ourselves.
+By default, when a new item is added to the `ListView` that contains our log messages no scroll is performed. We'd want to know when an item is added to the list so we can perform the scroll ourselves.
 
 Our `LogEntries` variable (which is an `ObservableCollection`) has a `CollectionChanged` event handler we can subscribe to. So, first of all let's create a method in our `MainWindow.xaml.cs` to handle the scroll:
 
 {% highlight c# %}
 private void OnLogEntriesChangedScrollToBottom(object sender, NotifyCollectionChangedEventArgs e)
 {
+    if (!IsAutoScrollEnabled)
+    {
+        return;
+    }
+
     if (VisualTreeHelper.GetChildrenCount(LogEntryList) > 0)
     {
         Decorator border = VisualTreeHelper.GetChild(LogEntryList, 0) as Decorator;
@@ -188,49 +189,33 @@ private void OnLogEntriesChangedScrollToBottom(object sender, NotifyCollectionCh
 }
 {% endhighlight %}
 
-Basically, we ask the `LogEntryList` `ListBox` for its children, get the scroll control for the list and ask it to go to the bottom.
+Basically, we ask the `LogEntryList` `ListView` for its children, get the scroll control for the list and ask it to go to the bottom. We can also check the `NotifyCollectionChangedEventArgs` to know whether it was triggered because an item was added or deleted, if we wanted to.
 
-Now, to tie it with our checkbox, modify the `IsAutoScrollEnabled` property with this:
+Now, to tie it with our checkbox, add this:
 
 {% highlight c# %}
-public bool IsAutoScrollEnabled
-{
-    get
-    {
-        return m_autoScrollEnabled;
-    }
-
-    set
-    {
-        m_autoScrollEnabled = value;
-        
-        if(value)
-        {
-            LogEntries.CollectionChanged += OnLogEntriesChangedScrollToBottom;
-        }
-        else
-        {
-            LogEntries.CollectionChanged -= OnLogEntriesChangedScrollToBottom;
-        }
-    }
-}
+LogEntries.CollectionChanged += OnLogEntriesChangedScrollToBottom;
 {% endhighlight %}
 
-So, we add or remove our callback based on the state of the checkbox.
+We can now, also, refactor `IsAutoScrollEnabled` with just this:
 
-Congratulations, you've got an auto-scrolling `ListBox`!
+{% highlight c# %}
+public bool IsAutoScrollEnabled { get; set; }
+{% endhighlight %}
+
+Congratulations, you've got an auto-scrolling `ListView`!
 
 # Per system filters
 
 So far the new features are great additions, but how about being able to filter messages by their system?
 
-Imagine you're working on a game and there's some bug you're tracking down related to the game _logic_. Wouldn't it be awesome to filter out everything else and only read the logs for that system? Something like clicking on different checkboxes?
+Imagine you're working on program and there's some bug you're tracking down related to the _net communication_. Wouldn't it be awesome to filter out everything else and only read the logs for that system? Something easy like clicking on different checkboxes?
 
 However, the goal of this log window is to be used in more than a single project and each one of them may have completely diferent systems. So, how do we do it?
 
 ## Configuration from the host
 
-Remember our `LoggerUI` entry point? We're adding a new method to let the host program tell us which systems it will be using so we can create as many checkboxes. This could be the outline:
+Remember our `LoggerUI` entry point? We're adding a new method to let the _host program_ tell us which systems it will be using so we can create as many checkboxes. This could be the outline:
 
 {% highlight c# %}
 public void ConfigureSytems(List<string> systems)
@@ -299,7 +284,7 @@ FilteredLogEntries = CollectionViewSource.GetDefaultView(LogEntries);
 FilteredLogEntries.Filter = LogEntriesFilterPredicate;
 {% endhighlight %}
 
-As you can see, we take `LogEntries` and create a _view_ of the data. Then we assign our filter, which looks like this:
+As you can see, we take `LogEntries` and create a _view_ of the data. By the way, you may want to transfer the `CollectionChanged` event to this one so we apply the scroll when this one changes and not the unfiltered one. Then we assign our filter, which looks like this:
 
 {% highlight c# %}
 private bool LogEntriesFilterPredicate(object item)
@@ -460,321 +445,12 @@ private void OnSystemEnableChanged(object sender, PropertyChangedEventArgs args)
 
 `Refresh` recreates the _view_ by re-evaluating the predicate against the source collection. This way, when we disable the `TEST` system we'll have an empty list and when we re-enable it we'll have all items even when we weren't seeing them.
 
-Great job!
-
-# Log levels
-
-This wouldn't be a proper log window if we didn't have log levels (_debug_, _warning_, _error_) and colors for them!
-
-Again, we let the host program decide which log levels it uses, their names and even the colors. And yes, you've guessed right, we'll do that in the `LoggerUI` singleton.
-
-What's the relationship between several log levels? Let's use the common one: each level represents an integer (higher means more severity).
-
-Imagine we had three log levels: _debug_, _warning_ and _error_. We could use _debug_ to log data or flow, _warning_ would let us know of non-blocking incompatibilities or to diagnose future issues and _error_ would flag stuff that must be fixed although we managed to continue executing the program.
-
-Oh, and we must update our `LogEntry` messages to have a log level as well!
-
-## Configuration from the host
-
-We've seen each log level is modeled as a name and a color. The relationship between them can be implicit based on the configuration. What about adding this to `LoggerUI`:
-
-{% highlight c# %}
-public void ConfigureLevels(List<Tuple<string, string>> levels)
-{
-    Debug.Assert(m_application != null);
-
-    m_application.Dispatcher.BeginInvoke((Action)delegate
-    {
-        Debug.Assert(m_application.MainWindow != null);
-
-        (m_application.MainWindow as MainWindow).ConfigureLevels(levels);
-    });
-}
-{% endhighlight %}
-
-We could've created a new class or struct to model each log level but we've used `Tuple<string, string>` instead to get to the point. The first `string` is the name, the second one is the hexadecimal representation of the color.
-
-We could call it like so:
-
-{% highlight c# %}
-LoggerUI.Instance.ConfigureLevels(new List<Tuple<string, string>>
-{
-    Tuple.Create("DEBUG",   "#000000"),
-    Tuple.Create("WARNING", "#B8860B"),
-    Tuple.Create("ERROR",   "#FF0000")
-});
-{% endhighlight %}
-
-Now, we'd have to create `MainWindow.ConfigureLevels` but before we have to create a new `ViewModel`.
-
-## ViewModel
-
-Similarly to the `LogSystem` one we created before, let's define `LogLevel` as:
-
-{% highlight c# %}
-public class LogLevel
-{
-    public string Name  { get; set; }
-    public Brush Color  { get; set; }
-    public int Severity { get; set; }
-}
-{% endhighlight %}
-
-Again, let's have a new `LogLevels` list in our `MainWindow` to contain all of the levels. And we could populate it from:
-
-{% highlight c# %}
-public void ConfigureLevels(List<Tuple<string, string>> levels)
-{
-    for(int i = 0; i < levels.Count; ++i)
-    {
-        LogLevels.Add(new LogLevel
-        {
-            Severity = i,
-            Name = levels[i].Item1,
-            Color = (Brush) new BrushConverter().ConvertFromString(levels[i].Item2)
-        });
-    }
-}
-{% endhighlight %}
-
-You'll understand why we've used `Brush` instead of `Color` in a moment.
-
-Cool! Now we've got all of the values in a list. What's next?
-
-## Add log level to LogEntry
-
-Right, until now all of our `LogEntry` messages only had a timestamp, a system and the message itself. Now, we need to add the name of the log level it was logged with. I'll let you go through this one, just add a new `string` property and we're ready.
-
-## Layout update
-
-We've established the relationship between log levels. Following our example, `debug < warning < error`. So, we only want to select the minimum level we're showing and the ones over it should show as well. This looks like a radio button to me.
-
-The layout of our window would look like this with this addition:
-
-![Doodle with full layout]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/doodle-full-layout.png){: .align-center}
-
-So, once again, let's skip some XML attributes and update the layout:
-
-{% highlight c# %}
-<Window ...>
-    <DockPanel>
-        <GroupBox ... />
-        <GroupBox ...>
-            <StackPanel>
-                <ListView Name="Systems" ... />
-                <ListView Name="Levels"
-                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                          BorderThickness="0">
-                    <ListView.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal"></WrapPanel>
-                        </ItemsPanelTemplate>
-                    </ListView.ItemsPanel>
-                    <ListView.ItemTemplate>
-                        <DataTemplate>
-                            <RadioButton Content="{Binding Name}"
-                                         GroupName="LogLevels"
-                                         Foreground="{Binding Color}">
-                            </RadioButton>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
-            </StackPanel>
-        </GroupBox>
-        <ListView x:Name="LogEntryList" ... />
-    </DockPanel>
-</Window>
-{% endhighlight %}
-
-The `Foreground` property expects a `Brush` instead of a raw `Color`, so that's the reason why we used one.
-
-Tweaking the sample messages a bit and taking a screenshots looks like this:
-
-![Log levels' first steps]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/log-levels-first-steps.png){: .align-center}
-
-As you can see, none of the elements is checked. We'll work on that soon. But first, let's add some colors to the messages!
-
-## Message coloring
-
-Now that all of the messages have a log level themselves, we could style the `LogEntryList` so each row has a color matching the configuration. That way, we can skip adding a new column with the name of the log level.
-
-If all of our log levels and their colors were static resources we'd be defining them in XAML. Since we're configuring it externally, we must create the styles programatically.
-
-To do that, let's update our `MainWindow.ConfigureLevels` like so:
-
-{% highlight c# %}
-public void ConfigureLevels(List<Tuple<string, string>> levels)
-{
-    // create log levels
-    for(int i = 0; i < levels.Count; ++i)
-    {
-        LogLevels.Add(new LogLevel
-        {
-            Severity = i,
-            Name = levels[i].Item1,
-            Color = (Brush) new BrushConverter().ConvertFromString(levels[i].Item2)
-        });
-    }
-
-    // style ListView based on the data from the log levels
-    Style logListStyle = new Style();
-    logListStyle.TargetType = typeof(ListViewItem);
-    foreach(LogLevel level in LogLevels)
-    {
-        DataTrigger trigger = new DataTrigger();
-        trigger.Binding = new Binding("Level");
-        trigger.Value = level.Name;
-        trigger.Setters.Add(new Setter(ListViewItem.ForegroundProperty, level.Color));
-
-        logListStyle.Triggers.Add(trigger);
-    }
-
-    LogEntryList.ItemContainerStyle = logListStyle;
-}
-{% endhighlight %}
-
-A style, as we can see, has the concept of a `DataTrigger`. It takes a `Binding` and a `Value` to test against, and if it matches then the `Setters` are applied. In our case just a text color, but we could use other styling. Finally, we assign the whole style to the `ItemContainerStyle`, which is the style for the `ListViewItem` entries.
-
-This is the result:
-
-![Styled log messages]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/styled-log-messages.png){: .align-center}
-
-However, there's something missing, isn't it?
-
-## Filtering
-
-Alright, alright. We're happy with the results but we still can't do anything with these radio buttons! Let's see what's left.
-
-We said we'd be adopting the usual _each log level has a severity and we can show all of the logs with a higher severity level than the selected one_. We've got as many radio buttons as log levels, and each one represents a severity (although we aren't displaying the number itself).
-
-So, it looks like we only want one variable: the currently selected log level. But, how do we go from many radio buttons to a single value?
-
-First of all, let's create a new variable in `MainWindow`:
-
-{% highlight c# %}
-public int CurrentLogLevelSeverity { get; set; }
-{% endhighlight %}
-
-Now, let's update our `LogLevel` class to this:
-
-{% highlight c# %}
-public class LogLevel : INotifyPropertyChanged
-{
-    public event PropertyChangedEventHandler PropertyChanged;
-
-    public string Name     { get; set; }
-    public Brush  Color    { get; set; }
-    public int    Severity { get; set; }
-
-    private bool m_selected;
-    public  bool Selected
-    {
-        get
-        {
-            return m_selected;
-        }
-        set
-        {
-            m_selected = value;
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs("Selected"));
-            }
-        }
-    }
-}
-{% endhighlight %}
-
-It looks pretty similar to `LogSystem`, doesn't it?
-
-Now, `MainWindow.ConfigureLevels`:
-
-{% highlight c# %}
-public void ConfigureLevels(List<Tuple<string, string>> levels)
-{
-    // create log levels
-    for(int i = 0; i < levels.Count; ++i)
-    {
-        LogLevel entry = new LogLevel
-        {
-            Severity = i,
-            Name = levels[i].Item1,
-            Color = (Brush)new BrushConverter().ConvertFromString(levels[i].Item2)
-        };
-
-        entry.PropertyChanged += OnLevelSelectedChanged;
-
-        LogLevels.Add(entry);
-    }
-
-    // [...]
-}
-{% endhighlight %}
-
-So, whenever the `LogLevel` changes (when the user interacts with the radio buttons) we'll get notified. And what do we do then?
-
-{% highlight c# %}
-private void OnLevelSelectedChanged(object sender, PropertyChangedEventArgs args)
-{
-    LogLevel level = sender as LogLevel;
-
-    if(level.Selected)
-    {
-        CurrentLogLevelSeverity = level.Severity;
-
-        FilteredLogEntries.Refresh();
-    }
-}
-{% endhighlight %}
-
-Because the `Selected` property will be modified for both the radio button that's getting selected and the one that's being deselected, we just react to the former. We update the log level and ask the filter to be re-evaluated. But, we must update the filtering to have all this into account!
-
-{% highlight c# %}
-private bool LogEntriesFilterPredicate(object item)
-{
-    LogEntry entry = item as LogEntry;
-
-    // filter out systems
-    if(LogSystems.Any(s => s.Name == entry.System && !s.Enabled))
-    {
-        return false;
-    }
-
-    // filter out levels
-    LogLevel level = LogLevels.First(l => l.Name == entry.Level);
-    if(level != null && level.Severity < CurrentLogLevelSeverity)
-    {
-        return false;
-    }
-
-    return true;
-}
-{% endhighlight %}
-
-Each message has the name of the log level it was logged with, and we have the severity we want to test against. So, we find out which `LogLevel` matches the given name and only keep those messages with a matching or greater severity. Bonus points if you can optimize this to prevent looking for the `LogLevel`.
-
-And that's it! Let's take some screenshots!
-
-![Filter by level: debug or higher]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/debug-or-higher.png){: .align-center}
-
-![Filter by level: warning or higher]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/warning-or-higher.png){: .align-center}
-
-![Filter by level: error or higher]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/error-or-higher.png){: .align-center}
-
-Not bad! But can we improve the layout so it looks better?
-
-![Final sample window]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/final-sample-window.png){: .align-center}
-
-What about adding more systems and more log levels from the host program?
-
-![Final sample window with extra configuration]({{ '/' | absolute_url }}/assets/images/per-post/log-window-3/final-sample-window-extra-configuration.png){: .align-center}
-
-Congratulations, reader! You've got a configurable log window of your own! :)
+Great job! Now you've got filters by system in an auto-scrolling `ListView`!
 
 ---
 
-Oh well, I guess that's it! We've gone through some useful features: positioning, auto-scroll, configuring log systems and log levels, filtering... Which other features you'd like to add?
+We've gone through some useful functionalities for our window, but we're missing an interesting one: log levels with colors!
 
-I hope this series helps you create your own version of the log window and use it in the future on your side projects!
+Mind joining me in the next post of the series to complete it?
 
 Thanks for reading!
