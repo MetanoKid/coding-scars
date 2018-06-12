@@ -141,13 +141,15 @@ WPF comes with an interesting collection called `ObservableCollection<T>`. It kn
 public ObservableCollection<LogEntry> LogEntries;
 {% endhighlight %}
 
-In this case, we could say that the `LogEntry` `Model` is also acting as a `ViewModel` because we're using it directly as part of the `ObservableCollection`. However, we could have a hard separation between the `Model` and the `ViewModel` if we were doing more than just showing data.
+In this case, we could say that the `LogEntry` `Model` is also acting as a `ViewModel` because we're using it directly as part of the `ObservableCollection`. However, we could have a hard separation between the `Model` and the `ViewModel` if we were doing more than just showing data (like having extra properties only relevant to the `View` or a data conversion from the `Model` to the `View`).
+
+In future entries of the series we'll see concrete examples of custom `ViewModel`.
 
 # Displaying logs
 
 Okay, now that we know what's what, let's get some messages on screen!
 
-First of all, let's hardcode some messages to be displayed. Open the `MainWindow` constructor and make it this one:
+First of all, let's hardcode a message we'll display. Open the `MainWindow` constructor and make it this one:
 
 {% highlight c# %}
 public MainWindow()
@@ -250,7 +252,7 @@ Run it again and... it works!
 
 ## Dispatcher
 
-Whenever we want some code to be executed in the `UI Thread` we can use the `Dispatcher` object for the _Application_ to queue the actions we want to perform.
+Whenever we want some code to be executed in the `UI Thread` we can use the `Dispatcher` object from the _Application_ instance to queue the actions we want to perform.
 
 There are two important methods to queue actions: `BeginInvoke` is asynchronous and `Invoke` is synchronous.
 
