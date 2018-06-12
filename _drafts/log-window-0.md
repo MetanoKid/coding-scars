@@ -15,7 +15,7 @@ series: Log window from scratch
 
 Programmers love logging stuff. From errors to very verbose debug data or _errors that should be warnings_. We love them.
 
-Logging data is very useful when you're looking for something. Maybe there's a bug that's hard to reproduce so you add some logs to trace it down after it occurs. Maybe you just want to know the values of some variables at some point in the code without attaching a debugger. Or even whether your code gets called at all!
+Logging data is very useful when you're looking for something. Maybe there's a bug that's hard to reproduce and you add some logs to trace it down after it occurs. Maybe you just want to know the values of some variables at some point in the code without attaching a debugger. Or even whether your code gets called at all!
 
 So, you start adding logs. Maybe not a lot of them, but _just enough_. And then you run your program and realize you aren't able to find your log because there are too many logs from other systems in the program (your past self added _just enough_ ones as well, maybe?). _If only it would be easy to view and filter them live..._
 
@@ -35,9 +35,9 @@ These are the requirements:
   * Tabular display.
   * Timestamps.
   * Colored log levels: i.e. _debug_ is black, _warning_ is yellow, _error_ is red.
-  * Log systems/tags: _render_, _net_, _gameplay_.
+  * Log systems/tags: i.e. _render_, _net_, _gameplay_.
   * Easy to integrate with other C++/C# projects.
-  * Somewhat configurable from the host program: _which log levels/systems are relevant to this program?_
+  * Somewhat configurable from the host program: i.e. _which log levels/systems are relevant to this program?_
   * Auto-scroll: on and off.
   * Filters: by log level, by system.
   * _Good enough_ performance.
@@ -63,6 +63,8 @@ I started this side project like three times. Each time with a different scope a
 I investigated what I could do and how. Then, what I really wanted to have. Then made an initial version and started writing a very long post on how to do it, step by step, and realized the approach was pretty boring.
 
 After that I decided I'd start again but stay on point, have more screenshots while showing most of the code. With a bit of luck this approach is more engaging and you don't get bored!
+
+Still, it took me way more than I expected and writing these posts delayed it even more. I plan on using this log window soon in other projects and validate its utility.
 
 # Road map
 
