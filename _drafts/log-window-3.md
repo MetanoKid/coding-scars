@@ -12,12 +12,13 @@ tags:
   - Class Library
   - Filter
   - System
+  - Checkbox
 series: Log window from scratch
 ---
 
 Welcome to a new entry in the _Log window from scratch_ series, dear reader!
 
-In the previous entry we converted our WPF window into a `Class Library` and created a _host program_ that consumed it. This time, we'll expose some configuration to the _host program_ and add some new functionality to the window. This way we can support several projects and make it more useful.
+In the previous entry we converted our WPF window into a `Class Library` and created a _host program_ that used it to display some sample messages. This time, we'll expose some configuration to the _host program_ and add some new functionality to the window. This way we can support several projects and make it more useful.
 
 Ready? Set? Go!
 
@@ -25,7 +26,7 @@ Ready? Set? Go!
 
 Let's start with a simple one: setting the position and size of our window.
 
-Imagine you are developing a videogame and it has a window where the game is rendered. You don't want your log window to be created over it (or under it!), but side to side instead.
+Imagine you are developing a game and it has a window where it gets rendered. You don't want your log window to be created over it (or under it!), but side to side instead.
 
 We could add two new methods to our `LoggerUI` called `SetPosition` and `SetSize`, or we could pass these parameters to the `Initialize` method and have them set from the start. For now, let's pass them to `Initialize` since we don't plan on resizing it programatically after it's shown.
 
@@ -84,7 +85,7 @@ private LoggerUI(Rect dimensions)
 The only addition has been the block where we set the dimensions.  
 And this is it! We can now position and size it however we want.
 
-Bonus idea: we could ask the window about its position and size from the host program and persist its values so we could start from the last configuration.
+Bonus idea: we could ask the window about these properties (which would be updated when resizing or moving the window) from the host program and persist its values so we could start from the last configuration when we launch the program again.
 
 # Auto-scroll to bottom
 
@@ -237,7 +238,7 @@ We're going to have a list of checkboxes, one for each system we've received and
 
 ## ViewModel
 
-We could have a new `ViewModel` called `LogSystem` which contains the name of the system (as received from the host) as well as the state of the checkbox we'll have. Something like:
+We could have a new `ViewModel` called `LogSystem` which contains the name of the system (as received from the host) as well as the state of the checkbox we'll present to the user. Something like:
 
 {% highlight c# %}
 public class LogSystem
@@ -265,9 +266,9 @@ public void ConfigureSystems(List<string> systems)
 
 ## Filtering
 
-Remember `LogEntries`? The `List<LogEntry` where we store all of the log messages we receive? Well, we want to filter it now. To do that, we'll create a new `ICollectionView` from it.
+Remember `LogEntries`? The `List<LogEntry>` where we store all of the log messages we receive? Well, we want to filter it now. To do that, we'll create a new `ICollectionView` from it.
 
-An `ICollectionView` lets us sort, filter or group data from a given collection via predicate. This predicate is a function that decides, for each element in the collection, whether it belongs to the selected data.
+An `ICollectionView` lets us sort, filter or group data from a given collection via predicate. This predicate is a function that decides, for each element in the collection, whether it belongs to the filtered data.
 
 By the way, don't let the `View` part of the name fool you. This doesn't have anything to do with visual representation, it's just the way to call this kind of filtered collection.
 
@@ -301,7 +302,7 @@ private bool LogEntriesFilterPredicate(object item)
 }
 {% endhighlight %}
 
-In other words, we keep any `LogEntry` except the `LogSystem` that matches is disabled.
+In other words, we keep any `LogEntry` unless the matching `LogSystem` is disabled.
 
 This implementation has an unexpected behavior at this point, but let's continue and discover it later on.
 
@@ -375,7 +376,7 @@ The second one shows how the messages between timestamps `3651` and `8797` are g
 
 If you remember, we created an `ICollectionView` from the `LogEntries` list. When we created it, the filter was executed and it's executed again when a new `LogEntry` is added to the original `LogEntries` collection.
 
-When we disabled the `TEST` system, new items didn't fulfill the predicate but we didn't re-evaluate it for the existent ones. When we enabled it again, only the new ones were evaluated and not the ones that were discarded (although they were still stored in the `LogEntries` list).
+When we disabled the `TEST` system, new items didn't fulfill the predicate but we didn't re-evaluate it for the existent ones. When we enabled it again, only the new ones are evaluated and not the ones that were discarded while it was disabled (although they were still stored in the `LogEntries` list).
 
 So, how do we fix this issue?
 
