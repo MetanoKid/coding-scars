@@ -20,7 +20,7 @@ series: Log window from scratch
 
 In the previous post we went through some interesting functionalities for our log window but we were missing the, arguably, most important one.
 
-Should we start working on it? Oh yes, we should.
+Should we start working on it? Oh yes, and you'll love it.
 
 # Log levels
 
@@ -36,7 +36,7 @@ Oh, and for it to work we must remember to update our `LogEntry` messages to hav
 
 ## Configuration from the host
 
-We've decided each log level is modelled as a name and a color. The relationship between them can be implicit based on the configuration: the first ones are less important. What about adding this to `LoggerUI`:
+We've decided each log level is modelled as a name and a color. The severity can be implicit based on the configuration: the first ones are less important. What about adding this to `LoggerUI`:
 
 {% highlight c# %}
 public void ConfigureLevels(List<Tuple<string, string>> levels)
@@ -89,9 +89,9 @@ public void ConfigureLevels(List<Tuple<string, string>> levels)
     {
         LogLevels.Add(new LogLevel
         {
-            Severity = i,
             Name = levels[i].Item1,
-            Color = (Brush) new BrushConverter().ConvertFromString(levels[i].Item2)
+            Color = (Brush) new BrushConverter().ConvertFromString(levels[i].Item2),
+            Severity = i
         });
     }
 }
@@ -193,13 +193,13 @@ public void ConfigureLevels(List<Tuple<string, string>> levels)
 }
 {% endhighlight %}
 
-A style, as we can see, has the concept of a `DataTrigger`. It takes a `Binding` and a `Value` to test against, and if it matches then the `Setters` are applied. In our case just a text color, but we could use other styling. Finally, we assign the whole style to the `ItemContainerStyle`, which is the style for the `ListViewItem` entries.
+A `Style`, as we can see, has the concept of a `DataTrigger`. It takes a `Binding` and a `Value` to test against, and if it matches then the `Setters` are applied. In our case just a text color, but we could use other styling. Finally, we assign the whole style to the `ItemContainerStyle`, which is the one applied to the `ListViewItem` entries.
 
 This is the result:
 
 ![Styled log messages]({{ '/' | absolute_url }}/assets/images/per-post/log-window-4/styled-log-messages.png){: .align-center}
 
-However, there's something missing, isn't it?
+Looking nice, huh? However, there's something missing, isn't it?
 
 ## Filtering
 
@@ -287,7 +287,9 @@ private void OnLevelSelectedChanged(object sender, PropertyChangedEventArgs args
 }
 {% endhighlight %}
 
-Because the `Selected` property will be modified for both the radio button that's getting selected and the one that's being deselected, we just want the former. We update the log level and ask the filter to be re-evaluated. But, we must also refresh the filtering to have all this into account!
+Because the `Selected` property will be modified for both the radio button that's getting selected and the one that's being deselected, we're just interested in the former. We update the log level and ask the filter to be re-evaluated.
+
+But, we must add the log level to the filter or it won't do anything different!
 
 {% highlight c# %}
 private bool LogEntriesFilterPredicate(object item)
@@ -325,7 +327,7 @@ Not bad! But can we improve the layout so it looks better?
 
 ![Final sample window]({{ '/' | absolute_url }}/assets/images/per-post/log-window-4/final-sample-window.png){: .align-center}
 
-What about adding more systems and more log levels from the host program?
+What about adding more systems and more log levels from the host program? Don't cheat, you can't modify the WPF project!
 
 ![Final sample window with extra configuration]({{ '/' | absolute_url }}/assets/images/per-post/log-window-4/final-sample-window-extra-configuration.png){: .align-center}
 
@@ -333,8 +335,10 @@ Congratulations, reader! You've got a configurable log window of your own! :)
 
 ---
 
-Oh well, I guess that's it! With this post and the previous one we've gone through some useful features: positioning, auto-scroll, configuring log systems and log levels, filtering... Which other features you'd like to add? I encourage you to do it!
+Oh well, I guess that's it! With this post and the previous one we've gone through some useful features: positioning, auto-scrolling, configuring log systems and log levels, filtering... Which other features you'd like to add? I encourage you to do it!
 
 I hope this series helps you create your own version of the log window and use it in the future on your side projects!
+
+In the next post we'll see how we can have a C++ _host program_ that uses this log window.
 
 Thanks for reading!
