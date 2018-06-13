@@ -15,13 +15,13 @@ series: Log window from scratch
 
 Hello again! I was waiting for you to continue with our Log Window!
 
-In the last post we created the basic UI and functionality. However, that window did little by itself so we want to _convert it into a component_ we can plug into other projects. That way, we could focus on building a nice project with the help of a logging window!
+In the last post we created the basic UI and functionality. However, that window does little by itself so we want to _convert it into a component_ we can plug into other projects. That way, we could focus on building a nice project with the help of a logging window!
 
 Grabbed a drink? Then we're ready to start!
 
 # The host program
 
-We said we wanted to use the window from another project, right? Why don't we start building that, first?
+We said we wanted to use the window from another project, right? Why don't we start building that first?
 
 Let's add a new C# project into our solution. This time, we don't want a `WPF Application` but a `Console Application`. Let's give it a meaningful name... like `HostProgram`.
 
@@ -71,7 +71,7 @@ We can happily run our solution now and the formatted log message will show up i
 
 # Breaking it up
 
-Okay, we've connected our projects, but our `LogWindowUI` one is still a `Windows Application` and we want to make it a `Class Library`. We'll do that now, but first you should know everything will be broken until we complete some steps.
+Okay, we've connected our projects but our `LogWindowUI` one is still a `Windows Application` and we want to make it a `Class Library`. We'll do that now, but first you should know everything will be broken until we complete some steps.
 
 Start by opening the Properties page in the project (one way is double-clicking the `Properties` entry when you expand the project). Select `Class Library` from the _Output type_ control, then save.
 
@@ -109,13 +109,13 @@ But, how do we connect them now?
 
 So far we've gained access to the classes in the `LogWindowUI` project from the `HostProgram` one. However, we're left with a sad log message in the console and no WPF window.
 
-To keep things clean, we should expose some class that lets us create the window, send it messages and close it when necessary. We only want to have one window at the same time, so... guess which design pattern we'll be using?
+To keep things clean, we should expose some class that lets us create the window, send it messages and close it when necessary instead of dealing with the internal classes from the outside. We only want to have one window at the same time, so... guess which design pattern we'll be using?
 
 ## Singleton pattern
 
 You may have heard of the [Singleton pattern](https://en.wikipedia.org/wiki/Singleton_pattern){:target="_blank"} before. It allows us to restrict the instantiation of a class to a single object. It's used when it doesn't make sense to have several instances of one class, commonly when you're defining a manager of some sorts or a wrapper to an underlying system which should have a single entry point.
 
-Bob Nystrom ([@munificentbob](https://twitter.com/munificentbob){:target="_blank"}), in his [Game Programming Patterns](http://gameprogrammingpatterns.com){:target="_blank"}, has [an awesome chapter](http://gameprogrammingpatterns.com/singleton.html){:target="_blank"} about the pattern so go and read it if you want to know the good and the bad parts about it.
+Bob Nystrom ([@munificentbob](https://twitter.com/munificentbob){:target="_blank"}), in his [Game Programming Patterns](http://gameprogrammingpatterns.com){:target="_blank"}, has [an awesome chapter](http://gameprogrammingpatterns.com/singleton.html){:target="_blank"} about the pattern so go and read it if you want to know the good and bad parts about it.
 
 A simple C# implementation of the pattern is this one:
 
@@ -141,7 +141,7 @@ public sealed class LoggerUI
 }
 {% endhighlight %}
 
-However, this _lazy initialization_ (the instance isn't created until the first piece of code accesses it) takes life cycle control from us (and isn't thread safe). We'd want to explicitly control when the instance is created and when it's destroyed. Let's make it so:
+However, this _lazy initialization_ (the instance isn't created until the first piece of code accesses it by using the `Instance` property) takes life cycle control from us (and isn't thread safe). We'd want to explicitly control when the instance is created and when it's destroyed. Let's make it so:
 
 {% highlight c# %}
 public sealed class LoggerUI
