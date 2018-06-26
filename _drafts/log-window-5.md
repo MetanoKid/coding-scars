@@ -1,6 +1,6 @@
 ---
 layout: single
-title: "Log window from scratch: C++ and C# interoperability"
+title: "Log window from scratch: C++ to C# interoperability"
 excerpt: "Connect a native C++ project with our C# WPF log window"
 author: Meta
 category: Toolbox
@@ -12,6 +12,7 @@ tags:
   - C++/CLI
   - Managed
   - Unmanaged
+  - Mixed
 series: Log window from scratch
 ---
 
@@ -19,7 +20,7 @@ Hello and welcome to the last entry in the series!
 
 So far we've gone through the process of building a WPF live log window we could use from other C# projects. We made it a `Class Library` and used it from a _host program_ also written in C#.
 
-This time, we'll learn how we can have a C++ project use it. Yeah, that's right: we'll be calling C# WPF from C++!
+This time, we'll learn how we can have a C++ project use it. Yeah, that's right: we'll be calling C# from C++!
 
 Let's do it!
 
@@ -37,9 +38,9 @@ So, you could say: _how can we invoke C# code from C++ code?_ The short answer i
 
 There's a language called [C++/CLI](https://en.wikipedia.org/wiki/C%2B%2B/CLI){:target="_blank"} that we could basically say is C++ with new functionality to deal with .NET languages via [Common Language Infrastructure](https://en.wikipedia.org/wiki/Common_Language_Infrastructure){:target="_blank"}. We could call this kind of code _mixed_.
 
-With this in mind, we could have C++/CLI code sitting in between of C++ and C#, like in this diagram:
+Knowing this, we could have C++/CLI code sitting in between of C++ and C#, like in this diagram:
 
-TODO: diagram
+![Three projects]({{ '/' | absolute_url }}/assets/images/per-post/log-window-5/three-projects.png){: .align-center}
 
 With this picture in mind, these will be the steps:
 
@@ -87,7 +88,7 @@ void helloMixedWorld()
 
 To be able to invoke this `helloMixedWorld` we must first connect the two projects together. But, how can we do that?
 
-## Referencing Bridge from native
+## Referencing bridge from native
 
 When we chose `Class Library` while creating our C++/CLI project we were in fact creating a DLL, so we must follow the usual process for [linking DLLs](https://docs.microsoft.com/en-us/cpp/build/linking-an-executable-to-a-dll){:target="_blank"}. This time, we'll use the _Implicit Linking_ method.
 
@@ -243,7 +244,8 @@ Nothing pretty fancy here, right? What about `configureSystems`, for example?
 {% highlight c++ %}
 void Bridge::configureSystems(std::vector<const char *> systems)
 {
-  auto ^systemsManaged = gcnew System::Collections::Generic::List<System::String ^>();
+  typedef System::Collections::Generic::List<System::String ^> tManagedStringList;
+  tManagedStringList ^systemsManaged = gcnew tManagedStringList();
   for (const char *s : systems)
   {
     systemsManaged->Add(gcnew System::String(s));
@@ -253,7 +255,7 @@ void Bridge::configureSystems(std::vector<const char *> systems)
 }
 {% endhighlight %}
 
-This is what our `Bridge` is all about: translating stuff from C++ to C#. See how we're converting the `const char *` to `String`? Okay, but you may say: _what's that `String ^` or `gcnew`?
+This is what our `Bridge` is all about: translating stuff from C++ to C#. See how we're converting the `const char *` to `String`? Okay, but you may say: _what's that `String ^` or `gcnew`?_
 
 The `^` symbol represents a pointer to managed memory, and that memory must be created somewhere. That's where `gcnew` comes into play: creates memory handled by the Garbage Collector. We could say they are the managed counterparts of `*` and `new`.
 
@@ -261,7 +263,9 @@ The `^` symbol represents a pointer to managed memory, and that memory must be c
 
 By now you've already noticed we're enforcing having a single `LoggerUI` instance because it's a Singleton. However, nothing prevents us from creating several `Bridge` instances! We could create two of them and then an assert would trigger because we'd be trying to call `LoggerUI::Initialize` twice!
 
-We could fix it by ditching out the Singleton pattern at this level and having our `Bridge` _wrapper_ have a private `LoggerUI` member. However, it's a bit more convoluted than I wanted to dive into. Long story short, it requires creating a `BridgePrivate` class to be used by `Bridge` (pretty much like [PIMPL](https://en.cppreference.com/w/cpp/language/pimpl){:target="_blank"}) with a member of type `gcroot<LoggerUI ^>`. The reason is we can't expose a C++/CLI class to C++ with pointers to managed memory, so we must hide it.
+We could fix it by ditching out the Singleton pattern at this level and having our `Bridge` _wrapper_ have a private `LoggerUI` member. However, it's a bit more convoluted than I wanted to dive into when I started this post so we'll keep it out of scope.
+
+Long story short, it requires creating a `BridgePrivate` class to be used by `Bridge` (pretty much like the [PIMPL](https://en.cppreference.com/w/cpp/language/pimpl){:target="_blank"}) with a member of type `gcroot<LoggerUI ^>`. The reason is we can't expose a C++/CLI class to C++ with pointers to managed memory, so we must hide it in the private class.
 
 # Putting it all together
 
@@ -298,6 +302,16 @@ And this is the result:
 
 ![Hello WPF from native C++]({{ '/' | absolute_url }}/assets/images/per-post/log-window-5/hello-wpf-from-cpp.png){: .align-center}
 
-What if we configured more levels and more systems? What if we logged messages with random level and system? What if we recorded it into a gif?
+What if we configured more levels and more systems? What if we logged messages with random level and system? What if we recorded it into a GIF?
 
 ![Live log window]({{ '/' | absolute_url }}/assets/images/per-post/log-window-5/live-log-window.gif){: .align-center}
+
+Congratulations! You're now logging messages from C++ to a WPF window written in C#!
+
+---
+
+Wow, so that's the end of the series! We've gone through the process of creating a WPF live log window which we can use from C# and C++ projects. We've started from nothing and got to the previous GIF showing the result, and what a result! :)
+
+The only thing that's left is using it in other _real_ projects! What are you waiting for?
+
+Thanks a lot for reading!
