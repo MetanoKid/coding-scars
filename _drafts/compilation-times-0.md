@@ -1,14 +1,16 @@
 ---
 layout: single
-title: "My journey investigating long compilation times in C++"
-excerpt: "Things I learned when trying to shorten compilation times"
+title: "My journey investigating slow compilation times in C++"
+excerpt: "Why should we care?"
 author: Meta
 category: Toolbox
 tags:
   - C++
+  - CSharp
   - Visual Studio
   - MSBuild
-series: C++ compilation times
+  - Profiling
+series: Investigating C++ compilation times
 ---
 
 People don't usually enjoy processes that take long to complete without their direct interaction. And even when they do, it may be boring.  
@@ -44,22 +46,7 @@ Instead, I want to share what I've learned while *investigating slow compilation
 
 You know, the first step when optimizing something is to get some metrics we can compare with, or else we couldn't know whether we've improved. In our case, one question that needs an answer is: *how long do the different steps in our build process take?*.
 
-Last thing before we start, please answer this question: how much time you *think* you waste waiting for your project to build, each day?
+Last thing before we start, please write down the answer to this:
 
-
-
-
-
-
-
-Slow compilation times don't encourage refactoring.
-They cause anger when "NucleoDeLaTierra.h" is touched and everything gets recompiled.
-Improved with better computers and compilers.
-PCH, flags, but before you try to improve times you need to know where you are.
-Build Monitor, Parallel Builds Monitor, Visual Studio configuration to get more output on compilation, /Bt+, /time+, /d2cgsummary, /d1reportTime.
-"All files up to date" when you compile and one CL group is already compiled, why do you have several of those?
-What's MSBuild doing? Can we visualize it?
-C# MSBuild API, events, context.
-Generate Chrome Tracing file and visualize up to task.
-Add support for /Bt+ and /time+, visualize CL and Link extra data.
-Play with some flags and show different results, /Gm, /MP.
+How much time you *think* you waste waiting for your project to build, each day?
+{: .notice--primary}
