@@ -12,7 +12,7 @@ tags:
   - Profiling
   - MSVC
   - Flag
-series: Investigating C++ compilation times
+series: Investigating C++ compile times
 ---
 
 People build the projects they work on several times a day. More often than not, we perform the minimal build cycle: modify some code in a single file, save it and build. Other, sometimes painful, times we have to go through the full build cycle: rebuilding the whole project.
@@ -54,7 +54,7 @@ Let's explore some options.
 
 ## Build and Run
 
-![Visual Studio's Build and Run options page]({{ '/' | absolute_url }}/assets/images/per-post/compilation-times-1/visual-studio-options-build-and-run.png){: .align-center}
+![Visual Studio's Build and Run options page]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/visual-studio-options-build-and-run.png){: .align-center}
 
 This page has several useful options, and we'll come back to it later on, but let's just take a look at *MSBuild project build output verbosity*.
 
@@ -97,7 +97,7 @@ If we increase the previous option from `Normal` to `Detailed` the output will b
 
 ## VC++ Project Settings
 
-![Visual Studio's VC++ Project Settings options page]({{ '/' | absolute_url }}/assets/images/per-post/compilation-times-1/visual-studio-options-vcpp-project-settings.png){: .align-center}
+![Visual Studio's VC++ Project Settings options page]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/visual-studio-options-vcpp-project-settings.png){: .align-center}
 
 This page also has a handful of useful options, but the most important one for us is *Build Timing*.
 
@@ -168,7 +168,7 @@ Be careful! The results may be daunting at first (i.e. too much time wasted)!
 
 If you liked the previous one but prefer a more graphical approach, then take a look at [Paralel Builds Monitor](https://marketplace.visualstudio.com/items?itemName=ivson4.ParallelBuildsMonitor-18691){:target="_blank"}. It's got better version support, up to Visual Studio 2019 (at the time of writing).
 
-![Parallel Builds Monitor]({{ '/' | absolute_url }}/assets/images/per-post/compilation-times-1/parallel-builds-monitor.png){: .align-center}
+![Parallel Builds Monitor]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/parallel-builds-monitor.png){: .align-center}
 
 Although this extension can also export build data to a CSV file, it's the Gantt chart that I like the most. Not only it tells you which projects are building in parallel (you may think you removed some dependency but didn't!), it lets you quickly see how long did each project take to build. Absolutely recommended!
 
@@ -245,7 +245,7 @@ The bad thing about this flag is the huge amount of data it gives... and the coo
 
 If only we could visualize this data in a more graphical way...
 
-![/d1reportTime as shown by Google Chrome's trace viewer]({{ '/' | absolute_url }}/assets/images/per-post/compilation-times-1/teaser-d1reporttime-flag.png)
+![/d1reportTime as shown by Google Chrome's trace viewer]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/teaser-d1reporttime-flag.png)
 
 This is a teaser of the next post in the series!
 
