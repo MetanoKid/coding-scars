@@ -1,6 +1,6 @@
 ---
 layout: single
-title: "My journey investigating slow compilation times in C++"
+title: "My journey investigating slow compile times in C++"
 excerpt: "Why should we care?"
 author: Meta
 category: Toolbox
@@ -10,7 +10,7 @@ tags:
   - Visual Studio
   - MSBuild
   - Profiling
-series: Investigating C++ compilation times
+series: Investigating C++ compile times
 ---
 
 You know what's boring? Processes that take long to complete without you interacting. Making some coffee? *I want it already!* Doing the laundry? *If only it didn't take hours!* Riding a slow elevator? *Please, c'mon!*
@@ -37,13 +37,13 @@ Since I started worrying about these anomalistic build times I've tried to learn
 
 In this series I'd like to share what I've learned in the process, including some of those tools or how I've used them. Finally, I also want to talk about a way to visualize MSBuild's build process using Google Chrome's trace viewer and how it helped me. Have a look at a teaser:
 
-![MSBuild flame graph as shown by Google Chrome's trace viewer]({{ '/' | absolute_url }}/assets/images/per-post/compilation-times-0/teaser-msbuild-flame-graph.png)
+![MSBuild flame graph as shown by Google Chrome's trace viewer]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-0/teaser-msbuild-flame-graph.png)
 
 To make this tool, I was inspired by [@aras_p](https://twitter.com/aras_p) from [this blog post](https://aras-p.info/blog/2019/01/16/time-trace-timeline-flame-chart-profiler-for-Clang/). Thank you, Aras!
 
 ## Disclaimer
 
-Unfortunately, this isn't a series about *how to speed up your compilation times*, that's a series on its own. Instead, I want to share what I've learned while *investigating slow compilation times*: how MSBuild deals with solutions and projects, how to configure Visual Studio to add some extra data into, how some MSVC compiler flags can give you a heads up on your development cycle.
+Unfortunately, this isn't a series about *how to speed up your compile times*, that's a series on its own. Instead, I want to share what I've learned while *investigating slow compile times*: how MSBuild deals with solutions and projects, how to configure Visual Studio to add some extra data into, how some MSVC compiler flags can give you a heads up on your development cycle.
 
 You know, the first step when optimizing something is to get some metrics we can compare with, or else we couldn't know whether it improved. In our case, one question that needs an answer is: *how long do the different steps in our build process take?*
 
