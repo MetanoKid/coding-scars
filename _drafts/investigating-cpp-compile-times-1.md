@@ -1,6 +1,6 @@
 ---
 layout: single
-title: "Useful tools to investigate C++ build times"
+title: "Useful tools to investigate C++ compile times"
 excerpt: "Let's talk about some of the tools I found and how I used them"
 author: Meta
 category: Toolbox
@@ -19,7 +19,7 @@ People build the projects they work on several times a day. More often than not,
 
 These cycles take some time and what happens under the hood is totally dependent on your development environment and project.
 
-It took me a while to start worrying about these cycles and whether they were long or not. You know why it started? With rising anxiety and feeling I wasn't as productive.
+It took me a while to start worrying about these cycles and whether they were long or not. You know why it started? With rising anxiety and a feeling that I wasn't as productive.
 
 These slow build times come with some costs:
 
@@ -30,20 +30,26 @@ So, a while ago I set myself on a journey to identify what was causing them. And
 
 This was (more or less!) the process to answer: **how long does it take to build?**
 
-Disclaimer: although we're talking about long build times, the project I'll use to illustrate the process is my (unreleased) Game Boy emulator. It's a small project that builds relatively quickly in my old laptop, so we won't really see huge build times.
+Disclaimer: I'll be illustrating the process with my (unreleased) GameBoy emulator side-project. It's a small project (we won't see huge numbers) but it's not a synthetic test (it mainly consists of C++ but uses C# and C++/CLI for a [log window]({{ '/' | absolute_url }}log-window-0/)). This post will only cover how to get some build times, we'll see examples of how to improve them in a later entry in the series.
 
 # Visual Studio options
 
-First of all, I needed some numbers. Just the big picture, nothing too detailed. All I had was Visual Studio's output panel, and it just said:
+Okay, so we build our project and have just an intuition of how long it takes. But we need some numbers! Just the big picture, nothing too detailed. All I had was Visual Studio's output panel, and it just said:
 
 {% highlight text %}
-1>------ Rebuild All started: Project: A, Configuration: Debug x64 ------
+1>------ Rebuild All started: Project: LogWindowUI, Configuration: Debug x64 ------
 1>  [...]
-2>------ Rebuild All started: Project: B, Configuration: Debug x64 ------
+2>------ Rebuild All started: Project: LogWindowBridge, Configuration: Debug x64 ------
 2>  [...]
-3>------ Rebuild All started: Project: C, Configuration: Debug x64 ------
+3>------ Rebuild All started: Project: LogLibrary, Configuration: Debug x64 ------
 3>  [...]
-========== Rebuild All: 3 succeeded, 0 failed, 0 skipped ==========
+4>------ Rebuild All started: Project: GameBoy, Configuration: Debug x64 ------
+4>  [...]
+5>------ Rebuild All started: Project: MainWindows, Configuration: Debug x64 ------
+5>  [...]
+6>------ Rebuild All started: Project: Test, Configuration: Debug x64 ------
+6>  [...]
+========== Rebuild All: 6 succeeded, 0 failed, 0 skipped ==========
 {% endhighlight %}
 
 I could take a stopwatch and start it as soon as I hit the build button, but not much more.
@@ -61,30 +67,25 @@ This page has several useful options, and we'll come back to it later on, but le
 If we increase it from `Minimal` to `Normal`, we get this output:
 
 {% highlight text %}
-1>------ Rebuild All started: Project: A, Configuration: Debug x64 ------
+1>------ Rebuild All started: Project: LogWindowUI, Configuration: Debug x64 ------
 1>Build started DD/MM/YYYY HH:MM:SS.
 1>  [...]
 1>Build succeeded.
 1>
-1>Time Elapsed 00:00:03.08
-2>------ Rebuild All started: Project: B, Configuration: Debug x64 ------
-2>Build started DD/MM/YYYY HH:MM:SS.
-2>  [...]
-2>Build succeeded.
-2>
-2>Time Elapsed 00:00:03.60
-3>------ Rebuild All started: Project: C, Configuration: Debug x64 ------
-3>Build started DD/MM/YYYY HH:MM:SS.
-3>  [...]
-3>ClCompile:
-3>  Main.cpp
-3>  [...]
-3>Link:
-3>  [...]
-3>Build succeeded.
-3>
-3>Time Elapsed 00:00:04.08
-========== Rebuild All: 3 succeeded, 0 failed, 0 skipped ==========
+1>Time Elapsed 00:00:02.47
+[...]
+6>------ Rebuild All started: Project: Test, Configuration: Debug x64 ------
+6>Build started DD/MM/YYYY HH:MM:SS.
+6>  [...]
+6>ClCompile:
+6>  Main.cpp
+6>  [...]
+6>Link:
+6>  [...]
+6>Build succeeded.
+6>
+6>Time Elapsed 00:01:36.92
+========== Rebuild All: 6 succeeded, 0 failed, 0 skipped ==========
 {% endhighlight %}
 
 Great! We now have some data to work with! There are three interesting additions:
@@ -93,7 +94,7 @@ Great! We now have some data to work with! There are three interesting additions
   * `Time Elapsed HH:MM:SS.ms`: we now know how long it took to build this project.
   * `ClCompile`, `Link` and other new sections: they are what MSBuild calls *targets*. We'll come back to them in depth later on.
 
-If we increase the previous option from `Normal` to `Detailed` the output will be more verbose, it will include more info on those *targets* and also add *tasks* to the log. All this data will prove extremely useful in the future, but they don't add extra information on how long it takes to build. The bad thing is the build itself gets slower as you increase this log level.
+If we increase the previous option from `Normal` to `Detailed` the output will be more verbose, it will include more info on those *targets* and also add *tasks* to the log. All this data will prove extremely useful in the future, but they don't add extra information on how long it takes to build. Even worse: the build itself gets slower as you increase this log level.
 
 ## VC++ Project Settings
 
@@ -105,30 +106,33 @@ When we enable it and build our project, we get something like this:
 
 {% highlight text %}
 [...]
-3>Project Performance Summary:
-3>     3592 ms  A.vcxproj   1 calls
-3>               3592 ms  Rebuild                                    1 calls
-3>
-3>Target Performance Summary:
-3>        0 ms  CppClean                                   1 calls
-3>        [...]
-3>        1 ms  GetCopyToOutputDirectoryXamlAppDefs        1 calls
-3>        [...]
-3>      176 ms  PostBuildEvent                             1 calls
-3>     1341 ms  Link                                       1 calls
-3>     1990 ms  ClCompile                                  1 calls
-3>
-3>Build succeeded.
-3>
-3>Time Elapsed 00:00:03.59
-========== Rebuild All: 3 succeeded, 0 failed, 0 skipped ==========
+6>------ Rebuild All started: Project: Test, Configuration: Debug x64 ------
+6>Build started 25/03/2020 11:03:11.
+6>  [...]
+6>Project Performance Summary:
+6>    96955 ms  F:\Development\GameBoyEmulator\Projects\Test\Test.vcxproj   1 calls
+6>              96955 ms  Rebuild                                    1 calls
+6>
+6>Target Performance Summary:
+6>        0 ms  AfterRebuild                               1 calls
+6>       [...]
+6>       41 ms  WarnCompileDuplicatedFilename              1 calls
+6>      182 ms  CoreCppClean                               1 calls
+6>      489 ms  SetCABuildNativeEnvironmentVariables       1 calls
+6>     2332 ms  Link                                       1 calls
+6>    93807 ms  ClCompile                                  1 calls
+6>
+6>Build succeeded.
+6>
+6>Time Elapsed 00:01:36.92
+========== Rebuild All: 6 succeeded, 0 failed, 0 skipped ==========
 {% endhighlight %}
 
 Now we're talking! This output includes the time spent on each *target* as reported by MSBuild (we still don't know what's a *target*!), so we know where it's getting slow. Are C++ file compilations slow? Or maybe link times are too high?
 
 By the way, this option and the one from the previous point aren't related to each other: you can leave the former as `Minimal` and enable the latter.
 
-So far, so good! What should we do with this, then? Should we try to parse this output and build a timeline? Let's continue looking for tools first.
+So far, so good! What should we do with this, then? Should we try to parse this output and build a timeline already? Let's continue looking for tools first.
 
 # Visual Studio extensions
 
@@ -145,16 +149,16 @@ Turns out, Visual Studio Extensions' SDK lets you get notified of some MSBuild k
 {% highlight text %}
 Solution loaded:    GameBoyEmulator
 ------------------------------------------------------------
- - 00h 00m 03s 551ms  -- LogWindowUI --
- - 00h 00m 03s 714ms  -- LogWindowBridge --
- - 00h 00m 01s 142ms  -- LogLibrary --
- - 00h 00m 04s 434ms  -- GameBoy --
- - 00h 00m 05s 542ms  -- MainWindows --
- - 00h 01m 10s 958ms  -- Test --
-[1] Time Elapsed: 00h 01m 24s 545ms     Session build time: 00h 01m 24s 545ms
+ - 00h 00m 05s 298ms  -- LogWindowUI --
+ - 00h 00m 03s 594ms  -- LogWindowBridge --
+ - 00h 00m 01s 555ms  -- LogLibrary --
+ - 00h 00m 06s 393ms  -- GameBoy --
+ - 00h 00m 04s 852ms  -- MainWindows --
+ - 00h 01m 38s 037ms  -- Test --
+[1] Time Elapsed: 00h 01m 55s 300ms     Session build time: 00h 01m 55s 300ms
 {% endhighlight %}
 
-While Visual Studio is open, it will keep track of the *session*, adding up each compilation you do. But, what if you close Visual Studio? The *session* is gone, but the coolest thing is that sessions are persisted to a JSON file! This way, you can always come back to them.
+While Visual Studio is open, it will keep track of the *session*, adding up each compilation you do. What if you close Visual Studio? The *session* is gone, but the coolest thing is that sessions are persisted to a JSON file! This way, you can always come back to them.
 
 This is good enough to compare two builds together!
 
@@ -162,7 +166,9 @@ This is good enough to compare two builds together!
 
 Have all programmers (or everyone using Visual Studio!) in your team install this extension. Build a script that collects each JSON file at the end of the day, sends it to a server and clears the local one. Later on, aggregate all files together, tag data as necessary and you have the time your team is wasting by building the project (including how often each project is built)! If you plot it, you can even see some trends over time or spikes when a big code change happens.
 
-Be careful! The results may be daunting at first (i.e. too much time wasted)!
+This is the *real time* people waste, not how long your build server takes to make a build.
+
+Be careful, tho! The results may be daunting at first (i.e. too much time wasted)!
 
 ## Parallel Builds Monitor
 
@@ -241,9 +247,9 @@ Although the slow build times I have investigated weren't related to code genera
 
 Again, I learned about this flag [thanks to Aras](https://aras-p.info/blog/2019/01/21/Another-cool-MSVC-flag-d1reportTime/){:target="_blank"}, so please check his post for all of the info. This one applies to the compiler's front-end (hence the `d1`).
 
-The bad thing about this flag is the huge amount of data it gives... and the cool thing is the huge amount of data it gives! You get, separately, the time spent when including files (hierarchically!), the time spent declaring classes and the one on functions. It also has a summary on each section with the top sorted culprits so you can find useful date more easily.
+The bad thing about this flag is the huge amount of data it gives... and the cool thing is the huge amount of data it gives! You get, separately, the time spent when including files (hierarchically!), the one declaring classes and the same for functions. It also has a summary on each section with the top sorted culprits so you can find useful data more easily.
 
-If only we could visualize this data in a more graphical way...
+If only we could visualize its output in a more graphical way...
 
 ![/d1reportTime as shown by Google Chrome's trace viewer]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/teaser-d1reporttime-flag.png)
 
@@ -260,7 +266,7 @@ So far we've been talking about C++ development, and that means talking about `#
   * Front-end: reads code files, parses them, executes preprocessor directives (i.e. `#include` clauses) and applies semantic analysis.
   * Back-end: takes front-end's output and performs code generation.
 
-When you have large files and a lot of dependencies via `#include`, you're bound to have long front-end execution times. When that's the case, it's useful to see these connections.
+When you have large files and a lot of dependencies via `#include`, you're bound to have long front-end execution times. When that's the case, it's useful to see those connections.
 
 ## doxygen
 
