@@ -1,6 +1,6 @@
 ---
 layout: single
-title: "Creating a MSBuild-to-flame-graph tool"
+title: "Understanding MSBuild to create a MSBuild-to-flame-graph tool"
 excerpt: "Let's explore how MSBuild works and how we can visualize its process"
 author: Meta
 category: Toolbox
@@ -18,7 +18,7 @@ I love side projects. You have a problem you want to solve, think about how you'
 
 Over a year ago I started a side project to create a flame graph out of a MSBuild execution. This was inspired by [@aras_p](https://twitter.com/aras_p)'s [blog post](https://aras-p.info/blog/2019/01/16/time-trace-timeline-flame-chart-profiler-for-Clang/){:target="_blank"}. Thanks again for everything you've written in your blog!
 
-This post serves as a summary of what I learned and what ended up in the tool. I thought it would be a shorter post but it got out of control, so the examples will be part of a new one so we can show more!
+This post serves as a summary of what I learned and what ended up in the tool. I thought it would be a shorter post but it got out of control and the examples will be part of a new one so we can show more!
 
 ![MSBuild to flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/msbuild-flame-graph.png "MSBuild flame graph"){: .align-center}
 
@@ -56,15 +56,13 @@ Let's try to build our solution with MSBuild directly (again, within Visual Stud
 msbuild.exe Z:\path\to\solution.sln /t:Rebuild
 {% endhighlight %}
 
-This will rebuild our solution and dump a lot of information to console. This looks very much like setting *MSBuild project build output verbosity* to `Normal` or `Detailed` in Visual Studio's Options window!
+This will rebuild our solution and dump a lot of information to console. It looks very much like setting *MSBuild project build output verbosity* to `Normal` or `Detailed` in Visual Studio's Options window!
 
 We're getting closer, and [MSBuild official documentation](https://docs.microsoft.com/visualstudio/msbuild/msbuild){:target="_blank"} has a lot more information, like [using MSBuild programmatically](https://docs.microsoft.com/visualstudio/msbuild/msbuild-api){:target="_blank"}.
 
 # The goal
 
-Now that we know we can invoke MSBuild ourselves and there's, apparently, some kind of API to deal with it programmatically, we want to explore what it can offer!
-
-And because we're programmers, want some code, right? Let's get that first!
+Now that we know we can invoke MSBuild ourselves, parsing its output would be complex and still not give us enough data. Since there's some kind of API to deal with it programmatically, let's explore what it can offer!
 
 # C# basic API
 
@@ -118,7 +116,13 @@ Note it says version `14.0.0.0`. Still, no idea why they're different, but this 
 
 ### Bonus: binding redirects
 
-As if it wasn't complex enough, I had to apply binding redirects to make it build Visual Studio 2015 solutions. More info on the [official docs](https://docs.microsoft.com/dotnet/framework/configure-apps/redirect-assembly-versions){:target="_blank"}. I'm a C++ programmer and wasn't aware of this requirement, I guess .NET programmers are used to it!
+When I thought everything was set, I tried to build my firs project and... it failed.
+
+{% highlight text %}
+The "Message" task could not be loaded from the assembly Microsoft.Build.Tasks.Core, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a. [...]
+{% endhighlight %}
+
+I had to apply binding redirects to make it build Visual Studio 2015 solutions. More info on the [official docs](https://docs.microsoft.com/dotnet/framework/configure-apps/redirect-assembly-versions){:target="_blank"}. I'm a C++ programmer and wasn't aware of this requirement, I guess .NET programmers are used to it!
 
 I ended up adding this kind of entries to my `App.config` file:
 
@@ -156,9 +160,9 @@ And it will use the same MSBuild instance that invoked the build. *Voilà*!
 
 ## Get build data
 
-Alright! We've managed to make a solution build but we have nothing else to work with! Fear not, the API defines the `ILogger` and the basic `Logger` for us! More info on the [Build Loggers docs](https://docs.microsoft.com/visualstudio/msbuild/build-loggers){:target="_blank"}.
+Alright! We've managed to make a solution build but we have nothing else to work with! Fear not, the API defines the `ILogger` interface and the basic `Logger` class for us! More info on the [Build Loggers docs](https://docs.microsoft.com/visualstudio/msbuild/build-loggers){:target="_blank"}.
 
-Let's just log everything:
+Let's just take everything we can get:
 
 {% highlight c# %}
 public class AllMessagesLogger : Logger
@@ -184,9 +188,9 @@ BuildParameters parameters = new BuildParameters()
 };
 {% endhighlight %}
 
-With this we can print the message associated to each event MSBuild emits. And believe me, there's a ton of messages!
+With this we can print the message associated to every event MSBuild emits. And believe me, there's a ton of messages!
 
-There are two interesting things we should investigate now:
+Still, there are two interesting things we should investigate.
 
 ### Which events we can hook to?
 
@@ -218,7 +222,7 @@ As you can see, you can bind to different kind of events to get only what you're
 
 ### BuildEventArgs
 
-This is the base class for the events we're notified and has several child classes, one for each kind of event. Of all members it's got we're interested in these ones:
+This is the base class for the events and has derived classes for each kind of event. Of all members it's got we're interested in these ones:
 
   * `Timestamp`: the `DateTime` when the event was emitted.
   * `Message`: the text you've already read within Visual Studio's Output panel.
@@ -248,7 +252,7 @@ public class BuildEventContext
 We're only interested in the first ones.
 
   * `ProjectContextId` identifies this context.
-  * `NodeId`, after a bit of testing, identifies the *core* where it got executed (starts at 1, goes up until `Environment.ProcessorCount`).
+  * `NodeId`, after a bit of testing, identifies the *core* where it got executed (starts at 1, goes up to `Environment.ProcessorCount`).
   * `ProjectContextId`, `TargetId` and `TaskId` identify *where* this event got executed within a hierarchy.
 
 Alright, I think we can't postpone exploring `Project`, `Target` and `Task` anymore!
@@ -300,13 +304,13 @@ If we continue exploring this `.vcxproj` file we'll find this section:
 <!-- [...] -->
 {% endhighlight %}
 
-There are two sections I want you to pay attention to, in this case: `ClCompile` and `Link`. Both are specialized `Target` definitions (we'll see *how* in a moment). These are part of a `Project` and they group `Task` definitions together with a given order. You can read more in the [official documentation](https://docs.microsoft.com/visualstudio/msbuild/msbuild-targets){:target="_blank"}.
+There are two parts I want you to pay attention to, in this case: `ClCompile` and `Link`. Both are specialized `Target` definitions (we'll see *how* in a moment) and the stuff they contain are *properties*. These are part of a `Project` and they group `Task` definitions together in a given order. You can read more in the [official documentation](https://docs.microsoft.com/visualstudio/msbuild/msbuild-targets){:target="_blank"}.
 
 ### Task
 
-Finally, tasks execute the real logic behind all these definitions. They can create directories ([`MakeDir` task](https://docs.microsoft.com/visualstudio/msbuild/makedir-task){:target="_blank"}), compile code ([`CL` task](https://docs.microsoft.com/visualstudio/msbuild/cl-task){:target="_blank"}) or invoke other projects ([`MSBuild` task](https://docs.microsoft.com/visualstudio/msbuild/msbuild-task){:target="_blank"}), to give some examples.
+Finally, tasks execute the real logic behind all these definitions. They can create directories ([`MakeDir` task](https://docs.microsoft.com/visualstudio/msbuild/makedir-task){:target="_blank"}), compile code ([`CL` task](https://docs.microsoft.com/visualstudio/msbuild/cl-task){:target="_blank"}) or invoke other projects ([`MSBuild` task](https://docs.microsoft.com/visualstudio/msbuild/msbuild-task){:target="_blank"}), for example.
 
-Let's have a look ourselves, shall we? If you have a basic `.vcxproj` you won't see any `Task`. But you'll see this entry:
+Instead of faithfully believing that paragraph, let's have a look ourselves, shall we? If you have a basic `.vcxproj` you won't see any `Task`. But you'll see this entry:
 
 {% highlight xml %}
 <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
@@ -328,7 +332,7 @@ If you were to find that file, you'd find it has some definitions that point to 
 
 And that's where the `CL` task gets invoked.
 
-Nice, so a `Project` can have `Target` children and a `Target` groups `Task` entries together (one of which can spawn other `Project`).
+Nice, so a `Project` can have `Target` entries and a `Target` groups `Task` entries together (one of which can spawn other `Project`).
 
 ![PLACEHOLDER, add project target task manual diagram here](https://via.placeholder.com/900x500){: .align-center}
 
@@ -383,15 +387,131 @@ This is why we can Rebuild a single project (and its dependencies) by executing:
 msbuild.exe Z:\path\to\solution.sln /t:ProjectName:Rebuild
 {% endhighlight %}
 
-Great, so now that we know how MSBuild is structured, let's continue. But before we move on, this is the key takeaway from this section:
+Great, so now that we know how MSBuild is structured, we can continue. But before we move on, this is the key takeaway from this section:
 
 **Don't be afraid of diving as deep as you can when facing a new system.**
 {: .notice--primary}
 
 ## Tying it all together
 
-...
+Let's take the previous `AllMessagesLogger` we created and run a build. Simplifying a whole lot and gracefully indenting it, we'd get something like:
+
+Which looks like this if we indent it:
+
+{% highlight text %}
+BuildStarted
+  ProjectStarted
+    TargetStarted
+      TaskStarted
+      TaskFinished
+      TaskStarted
+        ProjectStarted
+          [...]
+        ProjectFinished
+      TaskFinished
+    TargetFinished
+    TargetStarted
+      [...]
+    TargetFinished
+  ProjectFinished
+BuildFinished
+{% endhighlight %}
+
+Doesn't this looks like a stack to you?
+
+{% highlight text %}
+Build
+  Project
+    Target
+      Task
+      Task
+        Project
+          [...]
+    Target
+{% endhighlight %}
+
+We can now start building our *timeline*!
+
+### Issues
+
+At first I thought it would be enough to keep stacking stuff together but soon enough I found not every entry refers to the *same hierarchy*. You may have two `Project` building together and events get mixed up.
+
+Here's where we go back to the `BuildEventContext`. Remember, it had `ProjectInstanceId`, `TargetId` and `TaskId`! Thanks to that, we can know the real hierarchy!
+
+Each context will populate these values as we get deeper in the hierarchy (i.e. a `Project` won't have a `TargetId` defined). There are two exceptions:
+
+  * The `Build` is a one-only element with no context.
+  * A `Project` can have no parent context (it's a top-level one) or reference a `Task`'s via `ParentEventContext` (part of the `ProjectStartedEvent` class).
+
+There are a lot of caveats in the implementation, some inconsistencies (like a `Task` that spawns a `Project` but that `Task` is finished before the `Project` even starts), and some trial and error.
+
+But, eventually, you get to something.
+
+# Google Chrome's trace viewer
+
+Now that we've got our hierarchy in memory we should output it to some kind of file. Turns out, Google Chrome has this [chrome://tracing](chrome://tracing){:target="_blank"} viewer we can use!
+
+It's a JSON file with a couple of special properties that let you visualize flame graphs. The format and properties are [available in this doc](https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU/preview){:target="_blank"}.
+
+{% highlight json %}
+{
+  "traceEvents": [
+    {
+      "ph": "B",
+      "pid": 0,
+      "tid": 0,
+      "ts": 0.0,
+      "name": "Hello, flame graph!"
+    },
+    {
+      "ph": "B",
+      "pid": 0,
+      "tid": 0,
+      "ts": 2000.0,
+      "name": "I'm a child!"
+    },
+    {
+      "ph": "E",
+      "pid": 0,
+      "tid": 0,
+      "ts": 8000.0
+    },
+    {
+      "ph": "E",
+      "pid": 0,
+      "tid": 0,
+      "ts": 10000.0
+    }
+  ]
+}
+{% endhighlight %}
+
+In this small example you can see how to create hierarchies in this format. You can load it into the viewer and this will be the result:
+
+![Google Chrome's trace viewer example]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/trace-example.png "Google Chrome's trace viewer example")
 
 # The result
 
-A couple of screenshots with raw MSBuild data (no post-process).
+Let's take everything, build some projects and see what's going on!
+
+If you create a blank `C++ Win32 Console Application` in Visual Studio 2015 with the default configuration, this is how it looks like:
+
+![Blank project flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/blank-project-flame-graph.png "Blank project's flame graph"){: .align-center}
+
+This is the trace from my GameBoy emulator (we'll try to improve it in the next post):
+
+![GameBoy emulator flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/gameboy-emulator-flame-graph.png "GameBoy emulator's flame graph"){: .align-center}
+
+While investigating slow compile times I read [this blog post](https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/){:target="_blank"} by [@BruceDawson0xB](https://twitter.com/BruceDawson0xB){:target="_blank"} and it helped a lot. This is its trace:
+
+![Random ASCII parallel project flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/random-ascii-parallel-flame-graph.png "Random ASCII's parallel project flame graph"){: .align-center}
+
+---
+
+That's all for now! We've seen how to invoke MSBuild from C# and use its `Logger` to create our flame graphs.
+
+In the next post we'll play around with these graphs to diagnose possible issues, add and remove some MSVC flags to get extra information (I'm looking at you `/Bt+` and `/d1reportTime`!).
+
+![Teaser of /d1reportTime as a flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/teaser-d1reporttime-flag.png "Teaser of /d1reportTime as a flame graph"){: .align-center}
+
+Thanks for reading!
