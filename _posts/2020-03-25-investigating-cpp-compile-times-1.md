@@ -60,7 +60,7 @@ Let's explore some options.
 
 ## Build and Run
 
-![Visual Studio's Build and Run options page]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/visual-studio-options-build-and-run.png){: .align-center}
+![Visual Studio's Build and Run options page]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/visual-studio-options-build-and-run.png "Build and Run options page"){: .align-center}
 
 This page has several useful options, and we'll come back to it later on, but let's just take a look at *MSBuild project build output verbosity*.
 
@@ -98,7 +98,7 @@ If we increase the previous option from `Normal` to `Detailed` the output will b
 
 ## VC++ Project Settings
 
-![Visual Studio's VC++ Project Settings options page]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/visual-studio-options-vcpp-project-settings.png){: .align-center}
+![Visual Studio's VC++ Project Settings options page]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/visual-studio-options-vcpp-project-settings.png "VC++ Project Settings option page"){: .align-center}
 
 This page also has a handful of useful options, but the most important one for us is *Build Timing*.
 
@@ -174,7 +174,7 @@ Be careful, tho! The results may be daunting at first (i.e. too much time wasted
 
 If you liked the previous one but prefer a more graphical approach, then take a look at [Paralel Builds Monitor](https://marketplace.visualstudio.com/items?itemName=ivson4.ParallelBuildsMonitor-18691){:target="_blank"}. It's got better version support, up to Visual Studio 2019 (at the time of writing).
 
-![Parallel Builds Monitor]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/parallel-builds-monitor.png){: .align-center}
+![Parallel Builds Monitor]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/parallel-builds-monitor.png "Parallel Builds Monitor extension"){: .align-center}
 
 Although this extension can also export build data to a CSV file, it's the Gantt chart that I like the most. Not only it tells you which projects are building in parallel (you may think you removed some dependency but didn't!), it lets you quickly see how long did each project take to build. Absolutely recommended!
 
@@ -274,7 +274,7 @@ Yes, the one that helps you document your code. [doxygen](http://www.doxygen.nl/
 
 This example is extracted from [doxygen's docs](http://www.doxygen.nl/manual/examples/diagrams/html/diagrams__e_8h.html){:target="_blank"}, but trust me when I tell you it can handle huge dependency graphs:
 
-![doxygen's include dependency graph](http://www.doxygen.nl/manual/examples/diagrams/html/diagrams__e_8h__incl.png){: .align-center}
+![doxygen's include dependency graph](http://www.doxygen.nl/manual/examples/diagrams/html/diagrams__e_8h__incl.png "doxygen include dependency graph"){: .align-center}
 
 The cool thing about these graphs is they're interactive when you use the `html` version (check previous link) and you can navigate at will. There's even an option to configure the maximum inclusion depth in a single graph, so it has you covered!
 
@@ -304,7 +304,7 @@ I'm sure there are a lot more!
 
 More recently, [Kirill Osenkov](https://twitter.com/KirillOsenkov){:target="_blank"} pointed me to [MSBuild Structured Log Viewer](https://msbuildlog.com/){:target="_blank"}.
 
-[![MSBuild Structured Log Viewer](https://msbuildlog.com/Screenshot1.png){: .align-center}](https://msbuildlog.com/)
+[![MSBuild Structured Log Viewer](https://msbuildlog.com/Screenshot1.png "MSBuild Structured Log Viewer"){: .align-center}](https://msbuildlog.com/){:target="_blank"}
 
 MSBuild 15.3 onwards lets you dump the full log it produces into a binary file you can read with that viewer. This includes project-target-task hierarchies, clicking on a target to see its definition in code and a great search tool. You can even *replay a build* by feeding that same binary file to MSBuild in case you want to do something with it!
 
