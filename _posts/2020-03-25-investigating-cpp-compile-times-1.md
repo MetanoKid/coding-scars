@@ -251,7 +251,7 @@ The bad thing about this flag is the huge amount of data it gives... and the coo
 
 If only we could visualize its output in a more graphical way...
 
-![/d1reportTime as shown by Google Chrome's trace viewer]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/teaser-d1reporttime-flag.png)
+![/d1reportTime as shown by Google Chrome's trace viewer]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/teaser-d1reporttime-flag.png "/d1reportTime as a flame graph")
 
 This is a teaser of the next post in the series!
 
@@ -314,7 +314,7 @@ I encourage you to give it a try! This tool shares one of the principles with th
 
 This one is even more recent, available from Visual Studio 2019 according to [Kevin's blog post](https://devblogs.microsoft.com/cppblog/introducing-c-build-insights/){:target="_blank"} on the official C++ developers blog.
 
-![C++ Build Insights](https://devblogs.microsoft.com/cppblog/wp-content/uploads/sites/9/2019/11/word-image.gif)
+![C++ Build Insights](https://devblogs.microsoft.com/cppblog/wp-content/uploads/sites/9/2019/11/word-image.gif "C++ Build Insights in WPA")
 
 To put it simply, the new versions of MSVC compiler and linker emit [ETW events](https://docs.microsoft.com/windows/win32/etw/event-tracing-portal){:target="_blank"} and they've added specially tailored panels to the [WPA](https://docs.microsoft.com/windows-hardware/test/wpt/windows-performance-analyzer){:target="_blank"} so you can explore them. This means you'll get exact timestamps, which is awesome when you want to investigate!
 
