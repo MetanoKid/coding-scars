@@ -1,6 +1,6 @@
 ---
 layout: single
-title: "Understanding MSBuild to build flame graphs"
+title: "Understanding MSBuild to create flame graphs"
 excerpt: "Let's explore how MSBuild works and how we can visualize its process"
 author: Meta
 category: Toolbox
@@ -50,7 +50,7 @@ We'll get something like:
 
 This is basically like building the solution in Visual Studio and copying the `Output` panel. However, that's it. I guess this isn't enough for us.
 
-In the previous post I mentioned Visual Studio Extensions use a SDK that lets you hook to MSBuild events and perform your own logic. So, Visual Studio is using MSBuild under the hood, isn't it?
+In the previous post I mentioned Visual Studio Extensions use a SDK that lets you hook to MSBuild events and perform your own logic. That means Visual Studio is using MSBuild under the hood, doesn't it?
 
 Let's try to build our solution with MSBuild directly (again, within Visual Studio's Developer Command Prompt):
 
@@ -60,7 +60,7 @@ msbuild.exe Z:\path\to\solution.sln /t:Rebuild
 
 This will rebuild our solution and dump a lot of information to console. It looks very much like setting *MSBuild project build output verbosity* to `Normal` or `Detailed` in Visual Studio's Options window!
 
-We're getting closer, and [MSBuild official documentation](https://docs.microsoft.com/visualstudio/msbuild/msbuild){:target="_blank"} has a lot more information, like [using MSBuild programmatically](https://docs.microsoft.com/visualstudio/msbuild/msbuild-api){:target="_blank"}.
+We're getting closer, and [MSBuild official documentation](https://docs.microsoft.com/visualstudio/msbuild/msbuild){:target="_blank"} has a lot more information on the topic. The key section, for us, will be [using MSBuild programmatically](https://docs.microsoft.com/visualstudio/msbuild/msbuild-api){:target="_blank"}.
 
 # The goal
 
@@ -87,7 +87,9 @@ BuildRequestData data = new BuildRequestData("Z:\\path\\to\\solution.sln",
                                              new[] { "Rebuild" },
                                              null);
 
-BuildParameters parameters = new BuildParameters();
+// not providing this default ProjectCollection causes unordered builds
+ProjectCollection projectCollection = new ProjectCollection();
+BuildParameters parameters = new BuildParameters(projectCollection);
 BuildResult result = BuildManager.DefaultBuildManager.Build(parameters, data);
 switch(result.OverallResult)
 {
@@ -106,7 +108,7 @@ For it to work you need these `BuildRequestData`, `BuildParameters` and `BuildMa
 
 ## Reference MSBuild assemblies
 
-By the time I started working on this tool I was using Visual Studio 2015 and I didn't know where to find any of these assemblies. I only knew they were part of `Microsoft.Build` packages. So I tried adding a Reference to them via `Framework`:
+By the time I started working on this tool I was using Visual Studio 2015 and I didn't know where to find any of these assemblies. I only knew they were part of `Microsoft.Build` packages, as stated in the official docs. So I tried adding a Reference to them via `Framework`:
 
 ![MSBuild assemblies via Framework]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/msbuild-assemblies-framework.png "Assemblies via Framework"){: .align-center}
 
@@ -154,7 +156,9 @@ Everything seemed to work... until I tried to migrate to MSBuild 15 (so I could 
 
 Apparently, versions under MSBuild 15 were bound to their Visual Studio installation and the new recommended way is to pull them via NuGet packages so they're separate.
 
-My GameBoy emulator project is built in C++ but uses [a Logger built in WPF]({{ '/' | absolute_url }}log-window-0/). Turns out, WPF uses MSBuild itself to process `.xaml` files (its UI-definition files). So, it tries to spawn and wait for a new MSBuild process within ours! That results in an `Unknown build error: object reference not set to an instance of an object`. Yes, a null pointer exception is all of the info you have to diagnose it. Good.
+With that in place I was able to build VS2017 C++ projects, but had no luck with C# ones.
+
+My GameBoy emulator is built in C++ but uses [a Logger built in WPF]({{ '/' | absolute_url }}log-window-0/). Turns out, WPF uses MSBuild itself to process `.xaml` files (its UI-definition files). That means it tries to spawn and wait for a new MSBuild process within ours! That results in an `Unknown build error: object reference not set to an instance of an object`. Yes, a null pointer exception is all of the info you have to diagnose it. Good.
 
 The fix is quite simple, however! Add this property to you WPF project:
 
@@ -168,7 +172,7 @@ And it will use the same MSBuild instance that invoked the build. *Voilà*!
 
 Alright! We've managed to make a solution build but we have nothing else to work with! Fear not, the API defines the `ILogger` interface and the basic `Logger` class for us! More info on the [Build Loggers docs](https://docs.microsoft.com/visualstudio/msbuild/build-loggers){:target="_blank"}.
 
-Let's just take everything we can get:
+Let's just take everything we can get from the build:
 
 {% highlight c# %}
 public class AllMessagesLogger : Logger
@@ -198,7 +202,7 @@ We can now print the message associated to every event MSBuild emits. And believ
 
 Still, there are some interesting things we should investigate.
 
-### Which events we can hook to?
+### Which events can we hook to?
 
 This is the definition of `IEventSource`:
 
@@ -299,8 +303,7 @@ If we continue exploring this `.vcxproj` file we'll find this section:
     <Optimization>Disabled</Optimization>
     <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     <SDLCheck>true</SDLCheck>
-    <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    <MinimalRebuild>false</MinimalRebuild>
+    <MinimalRebuild>true</MinimalRebuild>
   </ClCompile>
   <Link>
     <SubSystem>Windows</SubSystem>
@@ -310,7 +313,7 @@ If we continue exploring this `.vcxproj` file we'll find this section:
 <!-- [...] -->
 {% endhighlight %}
 
-There are two parts I want you to pay attention to, in this case: `ClCompile` and `Link`. Both are specialized `Target` definitions (we'll see *how* in a moment) and the stuff they contain are *properties*. These are part of a `Project` and they group `Task` definitions together in a given order. You can read more in the [official documentation](https://docs.microsoft.com/visualstudio/msbuild/msbuild-targets){:target="_blank"}.
+There are two parts I want you to pay attention to: `ClCompile` and `Link`. Both are specialized `Target` definitions (we'll see *how* in a moment) and the stuff they contain are *properties*. A `Target` lives within a `Project` and group `Task` definitions together in a given order. You can read more in the [official documentation](https://docs.microsoft.com/visualstudio/msbuild/msbuild-targets){:target="_blank"}.
 
 ### Task
 
@@ -380,14 +383,17 @@ We'll get a `solution.sln.metaproj` file we can open. And surprise! It's a MSBui
 
 {% highlight xml %}
 <?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" InitialTargets="ValidateSolutionConfiguration;ValidateToolsVersions;ValidateProjects" DefaultTargets="Build">
+<Project ToolsVersion="14.0"
+         xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
+         InitialTargets="ValidateSolutionConfiguration;ValidateToolsVersions;ValidateProjects"
+         DefaultTargets="Build">
 	<!-- [...] -->
 	<Target Name="GameBoy:Rebuild" ... />
 	<!-- [...] -->
 </Project>
 {% endhighlight %}
 
-This is why we can Rebuild a single project (and its dependencies) by executing:
+See the name of the generated `Target`? This is why we can Rebuild a project (and not the full solution) by executing:
 
 {% highlight text %}
 msbuild.exe Z:\path\to\solution.sln /t:ProjectName:Rebuild
@@ -442,10 +448,10 @@ At first I thought it would be enough to keep stacking events together but soon 
 
 Here's where we go back to the `BuildEventContext`. Remember it had `ProjectInstanceId`, `TargetId` and `TaskId` members? Thanks to that, we can recreate the actual hierarchy!
 
-Each context will populate these values as we get deeper in the hierarchy (i.e. a `Project` won't have a `TargetId` defined), but there are two exceptions:
+Each context will populate these values as we get deeper in the hierarchy (i.e. a `Project` won't have a `TargetId` defined), with some exceptions:
 
   * The `Build` is a unique element with no context.
-  * A `Project` can have no parent context (it's a top-level one) or reference a `Task` context via `ParentEventContext` member (part of the `ProjectStartedEvent` class).
+  * A `Project` has a `ParentEventContext` member (defined in the `ProjectStartedEvent` class). It can be empty (it's a top-level one) or reference a `Task` context.
 
 There are a lot of caveats in the implementation, some inconsistencies (like a `Task` that spawns a `Project` but that `Task` is finished before the `Project` even starts), and some trial and error.
 
@@ -494,11 +500,9 @@ In this small example you can see how to create hierarchies in this format. You 
 
 ![Google Chrome's trace viewer example]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/trace-example.png "Google Chrome's trace viewer example")
 
-And finally, let's build real traces!
-
 # The result
 
-Let's take everything, build some projects and see what's going on!
+Let's take everything, build a couple of projects and see it in action!
 
 ## Blank project
 
@@ -506,7 +510,7 @@ If you create a blank `C++ Win32 Console Application` in Visual Studio 2015 with
 
 ![Blank project flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/blank-project-flame-graph.png "Blank project's flame graph"){: .align-center}
 
-See how it has two `CL` tasks? One is the pre-compiled header and the other one is the main file.
+See how it has two `CL` tasks? One is the pre-compiled header and the other one is the main file. We'll see why they're separate in the next post.
 
 ## GameBoy emulator
 
@@ -516,10 +520,16 @@ This is the trace from my GameBoy emulator (we'll try to improve it in the next 
 
 See how it's using several `NodeId` and each one has a number of *timelines*? They represent projects with dependencies!
 
-The top-level Solution executes a `MSBuild` task to build `MainWindows.vcxproj.metaproj` (within the same `NodeId`) and `Test.vcxproj.metaproj` (in a separate `NodeId`). Both wait for `GameBoy.vcxproj.metaproj` to finish, which in turn waits for `LogLibrary.vcxproj.metaproj` to build...
+The top-level Solution executes a `MSBuild` task to build `MainWindows.vcxproj.metaproj` (within the same `NodeId`) and `Test.vcxproj.metaproj` (in a separate `NodeId`). Both wait for `GameBoy.vcxproj.metaproj` to finish (although it's unreadable in the graph), which in turn waits for another project to build...
 
-It's a bit complex because of the (seemingly) arbitrary `NodeId` switches, but that's the process!  
+It's a bit complex because of the (seemingly) arbitrary `NodeId` switches, but that's how it schedules project builds!  
 Remember, these `.vcxproj.metaproj` are generated from the `.sln` file!
+
+We can force the execution to build only *one project* in parallel, and this is the result:
+
+![GameBoy emulator flame graph, one parallel project]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/gameboy-emulator-one-parallel-project-flame-graph.png "GameBoy emulator's flame graph, one parallel project"){: .align-center}
+
+Now, dependencies are much more apparent!
 
 ## Bruce Dawson's parallel build
 
@@ -533,7 +543,7 @@ If you want to know why there are that many `CL` tasks, I invite you to check hi
 
 That's all for now! We've seen how to invoke MSBuild from C# and use its `Logger` to create our flame graphs.
 
-In the next post we'll play around with these graphs to diagnose possible issues, add and remove some MSVC flags to get extra information (I'm looking at you `/Bt+` and `/d1reportTime`!).
+In the next post we'll try to understand these graphs, try to diagnose possible issues, and add/remove some MSVC flags to get extra information (I'm looking at you `/Bt+` and `/d1reportTime`!).
 
 ![Teaser of /d1reportTime as a flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/teaser-d1reporttime-flag.png "Teaser of /d1reportTime as a flame graph"){: .align-center}
 
