@@ -14,11 +14,11 @@ tags:
 series: Investigating C++ compile times
 ---
 
-I love side projects. You have a problem you want to solve, think about how you'd do it and then start working on a solution that *mostly works*. Now you've calmed the itch that started it all, it becomes a *product* and you start losing interest on it. A new side projects pops in, the cycle repeats.
+I love side projects. You have a problem you want to solve, spend some time thinking about how you'd do it and then start working on a solution that *mostly works*. When you've calmed the itch that started it all, it becomes a *product* and you start losing interest on it. A new side projects pops in, the cycle repeats.
 
 But this time I managed to finish one!
 
-Over a year ago I started a side project to create a flame graph out of a MSBuild execution. This was inspired by [@aras_p](https://twitter.com/aras_p)'s [blog post](https://aras-p.info/blog/2019/01/16/time-trace-timeline-flame-chart-profiler-for-Clang/){:target="_blank"}. Thanks again for everything you've written in your blog!
+Over a year ago I started a side project to create a flame graph out of a MSBuild execution. It was inspired by [@aras_p](https://twitter.com/aras_p)'s [blog post](https://aras-p.info/blog/2019/01/16/time-trace-timeline-flame-chart-profiler-for-Clang/){:target="_blank"}. Thanks again for everything you've written in your blog!
 
 This post serves as a summary of what I learned while developing this tool. I thought it would be a shorter post but then got out of control! We'll have an extra post fiddling with compiler flags and project configurations to show a lot of examples!
 
@@ -48,9 +48,9 @@ We'll get something like:
 ========== Rebuild All: 6 succeeded, 0 failed, 0 skipped ==========
 {% endhighlight %}
 
-This is basically like building the solution in Visual Studio and copying the `Output` panel. However, that's it. I guess this isn't enough for us.
+This is basically like building the solution in Visual Studio and copying the `Output` panel. However, that's all you have. I guess it isn't enough for us!
 
-In the previous post I mentioned Visual Studio Extensions use a SDK that lets you hook to MSBuild events and perform your own logic. That means Visual Studio is using MSBuild under the hood, doesn't it?
+In the previous post I mentioned Visual Studio Extensions use an SDK that lets you hook to MSBuild events and perform your own logic. That means Visual Studio is using MSBuild under the hood, doesn't it?
 
 Let's try to build our solution with MSBuild directly (again, within Visual Studio's Developer Command Prompt):
 
@@ -64,11 +64,11 @@ We're getting closer, and [MSBuild official documentation](https://docs.microsof
 
 # The goal
 
-Now that we know we can invoke MSBuild ourselves, parsing its output would be complex and still not give us enough data. Since there's some kind of API to deal with it programmatically, let's explore what it can offer!
+Now that we know we can invoke MSBuild ourselves, parsing its output would be complex and still not give us enough data (i.e. no timestamps). Since there's some kind of API to deal with it programmatically, let's explore what it can offer!
 
 # C# basic API
 
-At first, when I started building this tool I was amazed at how little information I could find on how to call MSBuild from C# code. All I found were incomplete or unrelated issues on the MSDN forums and a couple of samples over at GitHub.
+At first, when I started building this tool, I was amazed at how little information I could find on how to call MSBuild from C# code. All I found were incomplete or unrelated issues on the MSDN forums and a handful of samples over at GitHub.
 
 I spent a lot of time trying to make it work, failing, trying again, mostly working but only for C++ solutions and not C# ones...
 
@@ -112,7 +112,7 @@ By the time I started working on this tool I was using Visual Studio 2015 and I 
 
 ![MSBuild assemblies via Framework]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/msbuild-assemblies-framework.png "Assemblies via Framework"){: .align-center}
 
-Note it says version `4.0.0.0`, I didn't even know which version I needed! This happened like a year ago so I may have forgotten, but I think it worked for a while until I tried to compile a different kind of project. Anyways, I ended up referencing assemblies via the Extensions page:
+Note it says version `4.0.0.0`, I didn't even know which version I needed! This happened like a year ago so I may have forgotten, but I think it worked for a while until I tried to compile a different kind of project. In any case, I ended up referencing assemblies via the Extensions page:
 
 ![MSBuild assemblies via Extensions]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/msbuild-assemblies-extensions.png "Assemblies via Extensions"){: .align-center}
 
@@ -198,7 +198,7 @@ BuildParameters parameters = new BuildParameters()
 };
 {% endhighlight %}
 
-We can now print the message associated to every event MSBuild emits. And believe me, there's a ton of messages!
+We'll now be printing the message associated to every event MSBuild emits. And believe me, there's a ton of messages!
 
 Still, there are some interesting things we should investigate.
 
@@ -259,11 +259,11 @@ public class BuildEventContext
 }
 {% endhighlight %}
 
-We're only interested in the first ones.
+We're only interested in the first members:
 
-  * `ProjectContextId` identifies this context.
-  * `NodeId`, after a bit of testing, identifies the *logical timeline* where it got executed (starts at 1, can excess the number of cores).
-  * `ProjectContextId`, `TargetId` and `TaskId` identify *where* this event got executed within a hierarchy.
+  * `ProjectContextId` identifies this context, useful when comparing two.
+  * `NodeId`, after a bit of testing, identifies the *logical timeline* where it got executed (starts at 1). It has nothing to do with processors, cores or threads so it can get pretty high.
+  * `ProjectContextId`, `TargetId` and `TaskId` identify *where* this event got executed within a hierarchy. We'll come back to them shortly.
 
 Alright, I think we can't postpone exploring `Project`, `Target` and `Task` anymore!
 
@@ -289,7 +289,7 @@ You may not know it, but that `.vcxproj` project file you've got is an XML file 
 </Project>
 {% endhighlight %}
 
-The key part here is the `Project` tag: it's the root of the file. You can head to the [official documentation](https://docs.microsoft.com/visualstudio/msbuild/project-element-msbuild){:target="_blank"} for more info, but let's just keep `Project` in cache.
+The key tag is `Project`, the root of the document. You can head to the [official documentation](https://docs.microsoft.com/visualstudio/msbuild/project-element-msbuild){:target="_blank"} for more info, but let's just keep `Project` in cache.
 
 ### Target
 
@@ -313,13 +313,13 @@ If we continue exploring this `.vcxproj` file we'll find this section:
 <!-- [...] -->
 {% endhighlight %}
 
-There are two parts I want you to pay attention to: `ClCompile` and `Link`. Both are specialized `Target` definitions (we'll see *how* in a moment) and the stuff they contain are *properties*. A `Target` lives within a `Project` and group `Task` definitions together in a given order. You can read more in the [official documentation](https://docs.microsoft.com/visualstudio/msbuild/msbuild-targets){:target="_blank"}.
+There are two tags I want you to pay attention to: `ClCompile` and `Link`. Both are specialized `Target` definitions (we'll see *how* in a moment). A `Target` lives within a `Project` and groups `Task` definitions together in a given order. You can read more in the [official documentation](https://docs.microsoft.com/visualstudio/msbuild/msbuild-targets){:target="_blank"}.
 
 ### Task
 
 Finally, tasks execute the real logic behind all these definitions. They can create directories ([`MakeDir` task](https://docs.microsoft.com/visualstudio/msbuild/makedir-task){:target="_blank"}), compile code ([`CL` task](https://docs.microsoft.com/visualstudio/msbuild/cl-task){:target="_blank"}) or invoke other projects ([`MSBuild` task](https://docs.microsoft.com/visualstudio/msbuild/msbuild-task){:target="_blank"}), for example.
 
-Instead of faithfully believing that paragraph, let's have a look ourselves, shall we? If you have a basic `.vcxproj` you won't see any `Task`, but you'll get this entry:
+We could faithfully believe they're part of a `Target`, but let's have a look ourselves, shall we? If you have a basic `.vcxproj` you won't see any `Task`, but you'll get this entry:
 
 {% highlight xml %}
 <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
@@ -372,14 +372,14 @@ Global
 EndGlobal
 {% endhighlight %}
 
-This defines which projects exist within our solution, their relationship and some extra data. If we go back to our Visual Studio's Developer Command Prompt and type:
+This defines which projects exist within our solution, their relationship and some other data. If we go back to our Visual Studio's Developer Command Prompt and type:
 
 {% highlight xml %}
 set MSBuildEmitSolution=1
 msbuild.exe Z:\path\to\solution.sln
 {% endhighlight %}
 
-We'll get a `solution.sln.metaproj` file we can open. And surprise! It's a MSBuild compilant file!
+We'll get several `.metaproj` files we can open. And surprise, they are MSBuild compilant files!
 
 {% highlight xml %}
 <?xml version="1.0" encoding="utf-8"?>
@@ -387,9 +387,9 @@ We'll get a `solution.sln.metaproj` file we can open. And surprise! It's a MSBui
          xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
          InitialTargets="ValidateSolutionConfiguration;ValidateToolsVersions;ValidateProjects"
          DefaultTargets="Build">
-	<!-- [...] -->
-	<Target Name="GameBoy:Rebuild" ... />
-	<!-- [...] -->
+  <!-- [...] -->
+  <Target Name="GameBoy:Rebuild" ... />
+  <!-- [...] -->
 </Project>
 {% endhighlight %}
 
@@ -406,7 +406,7 @@ Great, so now that we know how MSBuild is structured, we can continue. But befor
 
 ## Tying it all together
 
-Let's take the previous `AllMessagesLogger` we created and run a build. Simplifying a whole lot and gracefully indenting it, we'd get something like:
+Let's take the `AllMessagesLogger` we created before and run a build. Simplifying a whole lot and gracefully indenting it, we'd get something like:
 
 {% highlight text %}
 BuildStarted
@@ -444,14 +444,14 @@ We can now start building our *timeline*!
 
 ### Issues
 
-At first I thought it would be enough to keep stacking events together but soon enough I found not every entry refers to the *same hierarchy*. You may have two `Project` building in parallel and events get mixed up.
+At first, I thought it would be enough to keep stacking events together but soon enough I found not every entry refers to the *same hierarchy*. You may have two `Project` building in parallel and events get mixed up.
 
 Here's where we go back to the `BuildEventContext`. Remember it had `ProjectInstanceId`, `TargetId` and `TaskId` members? Thanks to that, we can recreate the actual hierarchy!
 
 Each context will populate these values as we get deeper in the hierarchy (i.e. a `Project` won't have a `TargetId` defined), with some exceptions:
 
   * The `Build` is a unique element with no context.
-  * A `Project` has a `ParentEventContext` member (defined in the `ProjectStartedEvent` class). It can be empty (it's a top-level one) or reference a `Task` context.
+  * A `Project` has a `ParentEventContext` member (defined in the `ProjectStartedEvent` class). It can be empty (it's a top-level `Project`) or reference a `Task` context.
 
 There are a lot of caveats in the implementation, some inconsistencies (like a `Task` that spawns a `Project` but that `Task` is finished before the `Project` even starts), and some trial and error.
 
@@ -466,41 +466,19 @@ We'll create a JSON file with a couple of special properties that let us visuali
 {% highlight json %}
 {
   "traceEvents": [
-    {
-      "ph": "B",
-      "pid": 0,
-      "tid": 0,
-      "ts": 0.0,
-      "name": "Hello, flame graph!"
-    },
-    {
-      "ph": "B",
-      "pid": 0,
-      "tid": 0,
-      "ts": 2000.0,
-      "name": "I'm a child!"
-    },
-    {
-      "ph": "E",
-      "pid": 0,
-      "tid": 0,
-      "ts": 8000.0
-    },
-    {
-      "ph": "E",
-      "pid": 0,
-      "tid": 0,
-      "ts": 10000.0
-    }
+    { "ph": "B", "pid": 0, "tid": 0, "ts": 0.0, "name": "Hello, flame graph!" },
+      { "ph": "B", "pid": 0, "tid": 0, "ts": 2000.0, "name": "I'm a child!" },
+      { "ph": "E", "pid": 0, "tid": 0, "ts": 8000.0 },
+    { "ph": "E", "pid": 0, "tid": 0, "ts": 10000.0 }
   ]
 }
 {% endhighlight %}
 
-In this small example you can see how to create hierarchies in this format. You can load it into the viewer and this will be the result:
+I've indented each object to give you a sense of hierarchy, but they're all children of `traceEvents`. You can load it into the viewer and this will be the result:
 
 ![Google Chrome's trace viewer example]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/trace-example.png "Google Chrome's trace viewer example")
 
-# The result
+# Flame graphs
 
 Let's take everything, build a couple of projects and see it in action!
 
@@ -533,7 +511,7 @@ Now, dependencies are much more apparent!
 
 ## Bruce Dawson's parallel build
 
-Finally, while investigating slow compile times I read [this blog post](https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/){:target="_blank"} by [@BruceDawson0xB](https://twitter.com/BruceDawson0xB){:target="_blank"} and it helped me a lot. This is its trace:
+Finally, while investigating slow compile times I read [this blog post](https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/){:target="_blank"} by [@BruceDawson0xB](https://twitter.com/BruceDawson0xB){:target="_blank"} and it helped me a lot. He provides the project he used for the post, so I downloaded it and this is its graph:
 
 ![Random ASCII parallel project flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/random-ascii-parallel-flame-graph.png "Random ASCII's parallel project flame graph"){: .align-center}
 
@@ -543,7 +521,7 @@ If you want to know why there are that many `CL` tasks, I invite you to check hi
 
 That's all for now! We've seen how to invoke MSBuild from C# and use its `Logger` to create our flame graphs.
 
-In the next post we'll try to understand these graphs, try to diagnose possible issues, and add/remove some MSVC flags to get extra information (I'm looking at you `/Bt+` and `/d1reportTime`!).
+In the next post we'll try to understand these graphs, try to diagnose possible issues, and fiddle with some MSVC flags to get extra information (I'm looking at you `/Bt+` and `/d1reportTime`!).
 
 ![Teaser of /d1reportTime as a flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-1/teaser-d1reporttime-flag.png "Teaser of /d1reportTime as a flame graph"){: .align-center}
 
