@@ -343,7 +343,7 @@ And that's where the `CL` task gets invoked!
 
 Nice, so a `Project` can have `Target` entries and a `Target` groups `Task` entries together (one of which can spawn other `Project`).
 
-![PLACEHOLDER, add project target task manual diagram here](https://via.placeholder.com/900x500){: .align-center}
+![Project, target and task hierarchy]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/project-target-task-hierarchy.png "Project, target and task hierarchy"){: .align-center}
 
 This is all great, but what's a `Solution` file then?
 
