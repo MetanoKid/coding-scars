@@ -511,7 +511,7 @@ Now, dependencies are much more apparent!
 
 ## Bruce Dawson's parallel build
 
-Finally, while investigating slow compile times I read [this blog post](https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/){:target="_blank"} by [@BruceDawson0xB](https://twitter.com/BruceDawson0xB){:target="_blank"} and it helped me a lot. He provides the project he used for the post, so I downloaded it and this is its graph:
+Finally, while investigating slow compile times I read [this blog post](https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/){:target="_blank"} by [@BruceDawson0xB](https://twitter.com/BruceDawson0xB){:target="_blank"} and it helped me a lot (thank you!). He provides the project he used for the post, so I downloaded it and this is its graph:
 
 ![Random ASCII parallel project flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/random-ascii-parallel-flame-graph.png "Random ASCII's parallel project flame graph"){: .align-center}
 
