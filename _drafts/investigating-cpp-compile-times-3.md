@@ -1,6 +1,6 @@
 ---
 layout: single
-title: "Improving C++ compile times thanks to flame graphs"
+title: "Improving C++ compile times using flame graphs"
 excerpt: "Now we can create flame graphs from MSBuild executions, let's put them to use!"
 author: Meta
 category: Toolbox
@@ -219,16 +219,52 @@ First of all, we can see the `Include Headers` section features a smaller number
 
 No wonder why the time spent on this file went down from `1.174s` to `0.161s`! Why don't we compare how the `Test.vcxproj` project build time changed with the PCH?
 
+This one is before having a PCH:
+
+![Test.vcxproj without PCH with /d1reportTime]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-3/test-project-d1reporttime-pre-pch.png "Test.vcxproj without PCH with /d1reportTime"){: .align-center}
+
+Let's add the PCH:
+
+![Test.vcxproj with PCH with /d1reportTime]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-3/test-project-d1reporttime-post-pch.png "Test.vcxproj with PCH with /d1reportTime"){: .align-center}
+
+See how the PCH has cut a lot of depth on each file? Also, the full project went down from `2m17s` to `49s`, and that's with `/MP` turned off! What if we turned it on?
+
+This one is before having a PCH:
+
 ![Test.vcxproj without PCH]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-3/test-project-pre-pch.png "Test.vcxproj without PCH"){: .align-center}
+
+Let's add the PCH:
 
 ![Test.vcxproj with PCH]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-3/test-project-post-pch.png "Test.vcxproj with PCH"){: .align-center}
 
-It's gone down from `2m26s` to `49s`!
+It's gone from `1m08s` to `27s`! Also, have you noticed how each `c1xx.dll` entry has shrunk?
+
+To sum up: we can check build times thanks to these flame graphs but also visualize the impact of our changes!
 
 # Extra examples
 
-## Google Test
+To finish this post I've built a couple of projects from GitHub to see how their flame graphs look like. Let's check them!
 
 ## RapidJSON
 
-## CMake?
+This is the flame graph for [RapidJSON](https://github.com/Tencent/rapidjson){:target="_blank"} when building the whole solution in `Debug|x64` with `/Bt+` and `/time+` enabled. Be warned, it's huge:
+
+![RapidJSON flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-3/example-rapidjson.png "RapidJSON flame graph"){: .align-center}
+
+With the info from this post, can you tell whether `/MP` is enabled for this build?
+
+For reference, this is what [Paralel Builds Monitor](https://marketplace.visualstudio.com/items?itemName=ivson4.ParallelBuildsMonitor-18691){:target="_blank"} has to say of the build:
+
+![RapidJSON build as seen by Parallel Builds Monitor]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-3/example-rapidjson-parallel-builds-monitor.png "RapidJSON build as seen by Parallel Builds Monitor"){: .align-center}
+
+See how the maximum number of projects building in parallel is 4? That's the number of logical cores in the machine I used to build it.
+
+## Google Test
+
+This one is for [Google Test](https://github.com/google/googletest){:target="_blank"}, `Debug|x64`. While RapidJSON built 28 projects, this one builds 80. We'll have to see it as a downscaled gif:
+
+![Google Test flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-3/google-test-flame-graph.gif "Google Test flame graph"){: .align-center}
+
+---
+
+Redact some final.
