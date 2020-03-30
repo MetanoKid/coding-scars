@@ -274,3 +274,7 @@ This series has focused on exploring and understanding MSBuild to create flame g
 I hope any of this info was useful for you, it definitely was for me.
 
 Thank you for your time, dear reader!
+
+--- 
+
+Update #1: I've decided to [release this tool at GitHub](https://github.com/MetanoKid/msbuild-flame-graph){:target="_blank"} so anyone can have a try. Thanks for all the support!
