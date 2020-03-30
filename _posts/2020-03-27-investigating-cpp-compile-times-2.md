@@ -66,9 +66,9 @@ We're getting closer, and [MSBuild official documentation](https://docs.microsof
 
 Now that we know we can invoke MSBuild ourselves, parsing its output would be complex and still not give us enough data (i.e. no timestamps). Since there's some kind of API to deal with it programmatically, let's explore what it can offer!
 
-# C# basic API
+# C# API
 
-At first, when I started building this tool, I was amazed at how little information I could find on how to call MSBuild from C# code. All I found were incomplete or unrelated issues on the MSDN forums and a handful of samples over at GitHub.
+At first, when I started building this tool, I was amazed at how little information I could find on how to call MSBuild from C# code. All I found were incomplete or unrelated issues on the MSDN forums, questions without accepted answers at Stack Overflow and a very low number of uses at GitHub.
 
 I spent a lot of time trying to make it work, failing, trying again, mostly working but only for C++ solutions and not C# ones...
 
@@ -152,7 +152,7 @@ I ended up adding this kind of entries to my `App.config` file:
 
 ### Bonus: MSBuild 15 and WPF projects
 
-Everything seemed to work... until I tried to migrate to MSBuild 15 (so I could build Visual Studio 2017 solutions) a year later. There's [an official guide](https://docs.microsoft.com/visualstudio/msbuild/updating-an-existing-application){:target="_build"} to do so (thank you!).
+Everything seemed to work... until I tried to migrate to MSBuild 15 a year later (so I could build Visual Studio 2017 solutions). There's [an official guide](https://docs.microsoft.com/visualstudio/msbuild/updating-an-existing-application){:target="_build"} to do so (thank you!).
 
 Apparently, versions under MSBuild 15 were bound to their Visual Studio installation and the new recommended way is to pull them via NuGet packages so they're separate.
 
@@ -261,7 +261,7 @@ public class BuildEventContext
 
 We're only interested in the first members:
 
-  * `ProjectContextId` identifies this context, useful when comparing two.
+  * `ProjectContextId` identifies this context, useful when comparing two of them.
   * `NodeId`, after a bit of testing, identifies the *logical timeline* where it got executed (starts at 1). It has nothing to do with processors, cores or threads so it can get pretty high.
   * `ProjectContextId`, `TargetId` and `TaskId` identify *where* this event got executed within a hierarchy. We'll come back to them shortly.
 
@@ -500,7 +500,7 @@ See how it's using several `NodeId` and each one has a number of *timelines*? Th
 
 The top-level Solution executes a `MSBuild` task to build `MainWindows.vcxproj.metaproj` (within the same `NodeId`) and `Test.vcxproj.metaproj` (in a separate `NodeId`). Both wait for `GameBoy.vcxproj.metaproj` to finish (although it's unreadable in the graph), which in turn waits for another project to build...
 
-It's a bit complex because of the (seemingly) arbitrary `NodeId` switches, but that's how it schedules project builds!  
+It's a bit complex because of the (seemingly) arbitrary `NodeId` switches, but that's how MSBuild schedules project builds!  
 Remember, these `.vcxproj.metaproj` are generated from the `.sln` file!
 
 We can force the execution to build only *one project* in parallel, and this is the result:
@@ -511,11 +511,11 @@ Now, dependencies are much more apparent!
 
 ## Bruce Dawson's parallel build
 
-Finally, while investigating slow compile times I read [this blog post](https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/){:target="_blank"} by [@BruceDawson0xB](https://twitter.com/BruceDawson0xB){:target="_blank"} and it helped me a lot. He provides the project he used for the post, so I downloaded it and this is its graph:
+Finally, while investigating slow compile times I read [this blog post](https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/){:target="_blank"} by [@BruceDawson0xB](https://twitter.com/BruceDawson0xB){:target="_blank"} and it helped me a lot (thank you!). He provides the project he used for the post, so I downloaded it and this is its graph:
 
 ![Random ASCII parallel project flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-2/random-ascii-parallel-flame-graph.png "Random ASCII's parallel project flame graph"){: .align-center}
 
-If you want to know why there are that many `CL` tasks, I invite you to check his blog post!
+If you want to know why there are that many `CL` tasks, I invite you to check his blog post or wait for the next entry in the series!
 
 ---
 
