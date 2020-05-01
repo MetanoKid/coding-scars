@@ -12,6 +12,7 @@ tags:
   - MSVC
   - C++ Build Insights
   - SDK
+  - vcperf
 series: Investigating C++ compile times
 ---
 
@@ -38,9 +39,9 @@ Disclaimer: this post is based on the 1.0.0 version of the C++ Build Insights SD
 
 ## Getting started
 
-Instead of rewriting a full list of steps to get t working, let me point you to the [official documentation](https://docs.microsoft.com/cpp/build-insights/reference/sdk/overview){:target="_blank"}.
+Instead of writing an incomplete and outdated list of steps to get it working, let me point you to the [official documentation](https://docs.microsoft.com/cpp/build-insights/reference/sdk/overview){:target="_blank"}.
 
-There, you'll get info on how to collect a trace using vcperf or how the SDK is structured. We'll be taking a look at it ourselves now.
+There, you'll get info on how to collect a trace using vcperf or how the SDK is structured. We'll be taking a look at some of its points now.
 
 ## Activities and events
 
@@ -60,7 +61,7 @@ These are the parent-child relationships for activities (yellow-bordered are top
 
 ![C++ Build Insights SDK Activities]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-4/activities.png "Activities"){: .align-center}
 
-These are the parent-child relationships for events (gray-shaded):
+These are the parent-child relationships with `SimpleEvent` included (gray-shaded):
 
 ![C++ Build Insights SDK Activities and Simple Events]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-4/activities-events.png "Activities and Simple Events"){: .align-center}
 
@@ -72,8 +73,8 @@ Let's keep this graph in mind as we continue exploring.
 
 When you want to analyze a build you'll usually perform these steps:
 
-  * Execute `vcperf /start SomeTraceName` from an elevated command line prompt.
-  * Build your project (from Visual Studio or command line, no matter which).
+  * Execute `vcperf /start SomeTraceName` from an elevated command-line prompt.
+  * Build your project (from Visual Studio or command-line, no matter which).
   * Execute `vcperf /stopnoanalyze SomeTraceName OutputFile.etl`.
   * Analyze `OutputFile.etl` with your tool (using the SDK).
 
@@ -123,32 +124,30 @@ The SDK calls these whenever an `Event` is read from the `.etl` file. Which one 
 So what's that `EventStack`? Whenever an `Event` is emitted we also get its context via this `EventStack`. Let's say we get `OnStopActivity` called. An example of the `EventStack` could be:
 
 {% highlight text %}
----------------- top of stack
-Function
+Function         <- top of stack
 Thread
 CodeGeneration
 C2DLL
 BackEndPass
 Compiler
----------------- bottom of stack
+-----------------
 {% endhighlight %}
 
 Or say we get `OnSimpleEvent` called:
 
 {% highlight text %}
----------------- top of stack
-SymbolName
+SymbolName       <- top of stack
 C1DLL
 FrontEndPass
 Compiler
----------------- bottom of stack
+-----------------
 {% endhighlight %}
 
 But how do we retrieve different events within the stack?
 
 ### Matchers
 
-Let's say we want to know all of the command line options within our trace. We explore the official docs and find there's a [`CommandLine`](https://docs.microsoft.com/cpp/build-insights/reference/sdk/cpp-event-data-types/command-line){:target="_blank"} event type. We'd add this method to our class:
+Let's say we want to know all of the command-line options within our trace. We explore the official docs and find there's a [`CommandLine`](https://docs.microsoft.com/cpp/build-insights/reference/sdk/cpp-event-data-types/command-line){:target="_blank"} event type. We'd add this method to our class:
 
 {% highlight c++ %}
 void OnCommandLineEvent(const CppBI::SimpleEvents::CommandLine& event)
@@ -176,7 +175,7 @@ public:
 
 That `MatchEventStackInMemberFunction` call there makes magic and filters those stacks which contain the event types in `OnCommandLineEvent` signature.
 
-We now know all of the command line options within the trace, but they're all mixed up. Remember how `Compiler` and `Linker` activities were parents of `CommandLine` events? Wouldn't it be awesome to tell them apart?
+We now know all of the command-line options within the trace, but they're all mixed up. Remember how `Compiler` and `Linker` activities were parents of `CommandLine` events? Wouldn't it be awesome to tell them apart?
 
 Let's create these two methods this time:
 
@@ -219,13 +218,13 @@ You can get more info on matchers and examples on the [official docs](https://do
 
 Now we know how to deal with the SDK, let's try to get some data out of our build, shall we?
 
-In this case we'll be using a default Unreal Engine project. Because it's the compiler and linker the ones emitting the events, we can get data from projects not supported in [MSBuildFlameGraph](https://github.com/MetanoKid/msbuild-flame-graph){:target="_blank"}.
+In this case we'll be using a default Unreal Engine project. Oh, and because it's the compiler and linker the ones emitting the events we can get data from projects not supported in [MSBuildFlameGraph](https://github.com/MetanoKid/msbuild-flame-graph){:target="_blank"}!
 
 ### Collecting a trace
 
 Before we can start, we need a trace to work with! These were my steps:
 
-  * Installed Visual Studio 15.9.22 (VS2017).
+  * Installed Visual Studio 15.9.22 (Visual Studio 2017).
   * Cloned [vcperf from GitHub](https://github.com/microsoft/vcperf){:target="_blank"} and built it.
   * Installed Unreal Engine 4.24.3, launched it and created the default `First Person Shooter` project with C++ code.
   * Launched an elevated command prompt and navigated to the previous vcperf output directory.
@@ -243,7 +242,7 @@ Before we get some code, we should go back to the directed graph we built before
 
 ![C++ Build Insights SDK Activities]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-4/activities.png "Activities"){: .align-center}
 
-See how both `FrontEndPass` and `BackEndPass` live within the `Compiler` activity? After a [quick check with the official docs](https://docs.microsoft.com/cpp/build-insights/reference/sdk/cpp-event-data-types/compiler-pass){:target="_blank"} we can see both classes inherit from `CompilerPass`. And that class has two interesting members:
+See how both `FRONT_END_PASS` and `BACK_END_PASS` live within the `COMPILER` activity? After a [quick check with the official docs](https://docs.microsoft.com/cpp/build-insights/reference/sdk/cpp-event-data-types/compiler-pass){:target="_blank"} we can see both classes inherit from `CompilerPass`. And that class has two interesting members:
 
   * `InputSourcePath`: path to the source file that gets compiled.
   * `OutputObjectPath`: path to the compiled output file.
@@ -417,13 +416,13 @@ Let's take a look at the raw result!
 
 ![Default Unreal Engine 4 FPS project flame graph]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-4/ue4project-flame-graph-raw-process-thread.png "Default Unreal Engine 4 FPS project flame graph"){: .align-center}
 
-Well, not specially readable either, isn't it? To the left of the image we can see `ProcessId` and `ThreadId` as reported by the SDK. It's a pity we have to scroll back and forth, trying to know which entry matches which parent. What's compiling in parallel? Found myself as clumsy as when using WPA.
+Well, not specially readable either, isn't it? To the left of the image we can see `ProcessId` and `ThreadId` as reported by the SDK. And if we want to know what's going on we have to scroll back and forth, trying to know which entry matches which parent. Or, what's compiling in parallel? Found myself feeling as clumsy as when using WPA.
 
 But, can we do any better?
 
 ### Packing parent-children together
 
-Let's try to keep child entries as close as possible to their parents, being careful to leave the necessary space to fit them when we have entries running in parallel.
+Let's post-process the data and try to keep child entries as close as possible to their parents, being careful to leave the necessary space to fit them when we have entries running in parallel.
 
 With a bit of work, we get this version:
 
@@ -437,17 +436,19 @@ Let's zoom into `DefaultFPSCppProjectGameMode.gen.cpp`:
 
 What can we see here? As part of the `C1DLL` activity we see that this `.cpp` file includes three other files. We also see that the `CodeGeneration` activity has all of the functions that get generated (they get generated in parallel, up to 4 because my computer has 4 logical cores).
 
-But we can see something else: the `Compiler` activity _only_ spans the `FrontEndPass` and `BackEndPass` of this file. And, if we go back to the full trace, all `Compiler` activities only deal with one file. Does this mean we aren't compiling in parallel? Well, apparently we are if we check the full trace. It looks UnrealHeaderTool is surely spawning as many `cl.exe` in parallel as files we want to compile, instead of letting `cl.exe` do the parallelization itself?
+But we can see something else: the `Compiler` activity _only_ spans the `FrontEndPass` and `BackEndPass` of this file. And, if we go back to the full trace, all `Compiler` activities only deal with one file. This maps to having a lot of `CL` MSBuild tasks! Does this mean we aren't compiling in parallel?
+
+Well, apparently we are compiling in parallel we check the full trace. It looks UnrealHeaderTool is spawning as many `cl.exe` in parallel as files we want to compile, instead of letting `cl.exe` do the parallelization itself?
 
 ### Getting template instantiation data
 
-The last cool thing we'll see requires using the [open source version of vcperf](https://github.com/microsoft/vcperf){:target="_blank"} as well as compiling with Visual Studio 16.4 (VS2019). This version of vcperf reports some extra events than the one shipping with Visual Studio 2019.
+The last cool thing we'll see requires using the [open source version of vcperf](https://github.com/microsoft/vcperf){:target="_blank"} as well as compiling with Visual Studio 16.4 (Visual Studio 2019). This version of vcperf reports some extra events than the one shipping with Visual Studio 2019.
 
 This time, we'll use [@BruceDawson0xB](https://twitter.com/BruceDawson0xB){:target="_blank"}'s project from [this blog post](https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/){:target="_blank"}, but updated to Visual Studio 2019. Let's take a look:
 
 ![Template instantiations]({{ '/' | absolute_url }}/assets/images/per-post/investigating-cpp-compile-times-4/template-instantiations.png "Template instantiations"){: .align-center}
 
-Bruce wanted to make compilations slow and calculated Fibonacci in templates (with some tricks to prevent the compiler from reusing template instantiation). And this is the result!
+Bruce wanted to make compilations slow and calculated Fibonacci in templates (with some tricks to prevent the compiler from reusing template instantiations). And this is the result!
 
 Of course, these template instantiations can be seen in other projects! This time we'll build the tool I've used for this post in `Release|x64` and zoom into `Main.cpp`:
 
