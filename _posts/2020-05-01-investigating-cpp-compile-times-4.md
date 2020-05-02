@@ -470,6 +470,6 @@ This exploration of the C++ Build Insights SDK helped me take more informed deci
 
 Again, let me thank the team that made the SDK possible, and [@KevinCadieuxMS](https://twitter.com/KevinCadieuxMS) in particular!
 
-I'm working on releasing the tool I used to write this post, so [stay tuned here](https://twitter.com/MetanoKid){:target="_blank"}.
+To write this post I built a tool that's now [available on GitHub](https://github.com/MetanoKid/cpp-build-analyzer){:target="_blank"} for everyone to try!
 
 Thanks for reading!
